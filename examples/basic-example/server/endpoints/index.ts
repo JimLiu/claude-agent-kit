@@ -1,0 +1,1 @@
+export { handlePingEndpoint } from './ping';

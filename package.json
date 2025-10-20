@@ -1,6 +1,6 @@
 {
   "name": "claude-agent-kit",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "description": "Utilities for @anthropic-ai/claude-agent-sdk: message parsing, session management, UI scaffolding, and runnable examples.",
   "type": "module",
   "main": "dist/index.js",
@@ -13,7 +13,10 @@
     }
   },
   "files": [
-    "dist"
+    "dist",
+    "src",
+    "README.md",
+    "LICENSE"
   ],
   "scripts": {
     "build": "tsc -p tsconfig.json",

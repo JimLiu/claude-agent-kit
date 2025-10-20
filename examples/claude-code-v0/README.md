@@ -2,6 +2,10 @@
 
 This example project demonstrates a minimal, end-to-end integration of `@anthropic-ai/claude-agent-sdk` that behaves like a lightweight version of v0.dev: you can chat with Claude, let it generate a React + Tailwind UI, and watch the resulting page update in real time.
 
+## Demo
+
+<video src="screenshots/claude-code-v0.mp4" controls title="Claude code v0 demo" />
+
 ## Key Features
 - **Chat-driven UI generation**: A single-page React client streams conversation events over WebSocket and renders Claude's partial responses as they arrive.
 - **Live workspace preview**: Each agent session operates inside its own sandbox, and the client mirrors those files into an embedded Sandpack playground for instant feedback.

@@ -35,7 +35,7 @@ export type BroadcastMessageType =
 
 export interface BaseBroadcastMessage {
   type: BroadcastMessageType;
-  sessionId: string;
+  sessionId: string | null;
 }
 
 export interface SessionInfoBroadcastMessage extends BaseBroadcastMessage {
@@ -101,7 +101,7 @@ export type SessionSubscriberCallback = (session: Session, message: BroadcastMes
 
 // Session class to manage a single Claude conversation
 export class Session {
-  public readonly id: string;
+  public readonly _id: string;
   public messages: ChatMessage[] = [];
   private subscribers: Map<string, SessionSubscriberCallback> = new Map();
   private queryPromise: Promise<void> | null = null;
@@ -128,7 +128,7 @@ export class Session {
   private pendingToolsBroadcast = false;
 
   constructor(client: IClaudeAgentSDKClient = new ClaudeAgentSDKClient()) {
-    this.id = nanoid();
+    this._id = nanoid();
     this.client = client;
   }
 
@@ -139,6 +139,12 @@ export class Session {
   
   // Subscribe a WebSocket client to this session
   subscribe(clientId: string, callback: SessionSubscriberCallback) {
+    const existing = this.subscribers.get(clientId);
+    if (existing) {
+      console.warn(`Client ${clientId} is already subscribed to session ${this.claudeSessionId}`);
+      return;
+    }
+
     this.subscribers.set(clientId, callback);
 
     // Send session info to new subscriber
@@ -146,7 +152,7 @@ export class Session {
       this,
       {
         type: 'session_info',
-        sessionId: this.id,
+        sessionId: this.claudeSessionId,
         messageCount: this.messageCount,
         isActive: this.queryPromise !== null
       },
@@ -205,7 +211,7 @@ export class Session {
 
     this.noticeSubscribers({
       type: "usage_updated",
-      sessionId: this.id,
+      sessionId: this.claudeSessionId,
       usage: this.usageData,
     });
   }
@@ -305,7 +311,7 @@ export class Session {
 
     const pendingIndex = this.messageCount + 1;
     console.log(
-      `Processing message ${pendingIndex} in session ${this.id}`
+      `Processing message ${pendingIndex} in session ${this.claudeSessionId}...`
     );
 
     const previousMessages = this.messages;
@@ -339,7 +345,7 @@ export class Session {
           this.processIncomingMessage(message);
         }
       } catch (error) {
-        console.error(`Error in session ${this.id}:`, error);
+        console.error(`Error in session ${this.claudeSessionId}:`, error);
         this.error = error instanceof Error ? error.message : String(error);
       } finally {
         this.queryPromise = null;
@@ -374,9 +380,10 @@ export class Session {
     const extracted = extractTimestamp(rawTimestamp);
     this.lastModifiedTime = extracted ?? Date.now();
 
+    this.claudeSessionId = message.session_id || this.claudeSessionId;
+
     // Update high level state derived from system/result messages.
     if (message.type === "system") {
-      this.claudeSessionId = message.session_id;
       if (message.subtype === "init") {
         this.busy = true;
       }
@@ -399,7 +406,7 @@ export class Session {
     for (const messageId of diff.removed) {
       this.noticeSubscribers({
         type: "message_removed",
-        sessionId: this.id,
+        sessionId: this.claudeSessionId,
         messageId,
       });
     }
@@ -407,7 +414,7 @@ export class Session {
     for (const added of diff.added) {
       this.noticeSubscribers({
         type: "message_added",
-        sessionId: this.id,
+        sessionId: this.claudeSessionId,
         message: added,
       });
     }
@@ -415,7 +422,7 @@ export class Session {
     for (const updated of diff.updated) {
       this.noticeSubscribers({
         type: "message_updated",
-        sessionId: this.id,
+        sessionId: this.claudeSessionId,
         message: updated,
       });
     }
@@ -427,7 +434,7 @@ export class Session {
       }
       this.noticeSubscribers({
         type: "tool_result_updated",
-        sessionId: this.id,
+        sessionId: this.claudeSessionId,
         messageId: message.id,
         toolUseId: toolUpdate.toolUseId,
         result: toolUpdate.toolResult,
@@ -440,7 +447,7 @@ export class Session {
   private emitSessionInfo(): void {
     this.noticeSubscribers({
       type: "session_info",
-      sessionId: this.id,
+      sessionId: this.claudeSessionId,
       messageCount: this.messageCount,
       isActive: this.queryPromise !== null,
     });
@@ -449,7 +456,7 @@ export class Session {
   private emitMessagesLoaded(): void {
     this.noticeSubscribers({
       type: "messages_loaded",
-      sessionId: this.id,
+      sessionId: this.claudeSessionId,
       messages: this.messages,
     });
   }
@@ -579,7 +586,7 @@ export class Session {
   private emitTodosUpdate(): void {
     this.noticeSubscribers({
       type: "todos_updated",
-      sessionId: this.id,
+      sessionId: this.claudeSessionId,
       todos: this.todos,
     });
   }
@@ -587,7 +594,7 @@ export class Session {
   private emitToolsUpdate(): void {
     this.noticeSubscribers({
       type: "tools_updated",
-      sessionId: this.id,
+      sessionId: this.claudeSessionId,
       tools: this.tools,
     });
   }

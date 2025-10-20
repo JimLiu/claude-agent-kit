@@ -1,16 +1,95 @@
-import { query } from "@anthropic-ai/claude-agent-sdk";
+import { HookJSONOutput, query } from "@anthropic-ai/claude-agent-sdk";
 import { promises as fs } from "node:fs";
 import path from "node:path";
 import type { Dirent } from "node:fs";
 import type { IClaudeAgentSDKClient, SDKMessage, SDKOptions, SDKUserMessage } from "./types";
+import { AGENT_PROMPT } from "./agent-prompt";
 
 const SESSION_FILE_EXTENSION = ".jsonl";
+
+export function parseSessionMessagesFromJsonl(fileContent: string): SDKMessage[] {
+  if (!fileContent) {
+    return [];
+  }
+
+  const lines = fileContent.split(/\r?\n/);
+  const messages: SDKMessage[] = [];
+
+  for (const rawLine of lines) {
+    const trimmed = rawLine.trim();
+    if (trimmed.length === 0) {
+      continue;
+    }
+
+    try {
+      const parsed = JSON.parse(trimmed);
+      const message = normalizeSessionLogEntry(parsed);
+      if (message) {
+        messages.push(message);
+      }
+    } catch {
+      continue;
+    }
+  }
+
+  return messages;
+}
 
 export class ClaudeAgentSDKClient implements IClaudeAgentSDKClient {
   private defaultOptions: SDKOptions;
 
   constructor(options?: Partial<SDKOptions>) {
+        const workspacePath = process.cwd();
     this.defaultOptions = {
+      maxTurns: 100,
+      cwd: workspacePath,
+      // model: "opus",
+      allowedTools: [
+        "Task", "Bash", "Glob", "Grep", "LS", "ExitPlanMode", "Read", "Edit", "MultiEdit", "Write", "NotebookEdit",
+        "WebFetch", "TodoWrite", "WebSearch", "BashOutput", "KillBash",
+      ],
+      systemPrompt: AGENT_PROMPT,
+      mcpServers: {
+      },
+      hooks: {
+        PreToolUse: [
+          {
+            matcher: "Write|Edit|MultiEdit",
+            hooks: [
+              async (input: any): Promise<HookJSONOutput> => {
+                const toolName = input.tool_name;
+                const toolInput = input.tool_input;
+
+                if (!['Write', 'Edit', 'MultiEdit'].includes(toolName)) {
+                  return { continue: true };
+                }
+
+                let filePath = '';
+                if (toolName === 'Write' || toolName === 'Edit') {
+                  filePath = toolInput.file_path || '';
+                } else if (toolName === 'MultiEdit') {
+                  filePath = toolInput.file_path || '';
+                }
+
+                const ext = path.extname(filePath).toLowerCase();
+                if (ext === '.js' || ext === '.ts') {
+                  const customScriptsPath = path.join(process.cwd(), 'agent', 'custom_scripts');
+
+                  if (!filePath.startsWith(customScriptsPath)) {
+                    return {
+                      decision: 'block',
+                      stopReason: `Script files (.js and .ts) must be written to the custom_scripts directory. Please use the path: ${customScriptsPath}/${path.basename(filePath)}`,
+                      continue: false
+                    };
+                  }
+                }
+
+                return { continue: true };
+              }
+            ]
+          }
+        ]
+      },
       ...options
     };
   }
@@ -135,7 +214,7 @@ async function collectCandidateProjectDirs(projectsRoot: string, cwd?: string): 
   return candidates;
 }
 
-async function readSessionMessages(filePath: string): Promise<SDKMessage[]> {
+export async function readSessionMessages(filePath: string): Promise<SDKMessage[]> {
   let fileContent: string;
   try {
     fileContent = await fs.readFile(filePath, "utf8");
@@ -150,27 +229,7 @@ async function readSessionMessages(filePath: string): Promise<SDKMessage[]> {
     return [];
   }
 
-  const lines = fileContent.split(/\r?\n/);
-  const messages: SDKMessage[] = [];
-
-  for (const rawLine of lines) {
-    const trimmed = rawLine.trim();
-    if (trimmed.length === 0) {
-      continue;
-    }
-
-    try {
-      const parsed = JSON.parse(trimmed);
-      const message = normalizeSessionLogEntry(parsed);
-      if (message) {
-        messages.push(message);
-      }
-    } catch {
-      continue;
-    }
-  }
-
-  return messages;
+  return parseSessionMessagesFromJsonl(fileContent);
 }
 
 function normalizeSessionLogEntry(entry: unknown): SDKMessage | null {
@@ -181,6 +240,10 @@ function normalizeSessionLogEntry(entry: unknown): SDKMessage | null {
   const record = entry as Record<string, unknown>;
   const rawType = record.type;
   if (typeof rawType !== "string") {
+    return null;
+  }
+
+  if (rawType.toLowerCase() === "summary") {
     return null;
   }
 
@@ -206,9 +269,27 @@ function normalizeSessionLogEntry(entry: unknown): SDKMessage | null {
     return null;
   }
 
+  if (isSummaryMessage(messageValue)) {
+    return null;
+  }
+
   normalized["type"] = rawType;
 
   return normalized as SDKMessage;
+}
+
+function isSummaryMessage(value: unknown): boolean {
+  if (!value || typeof value !== "object") {
+    return false;
+  }
+
+  const record = value as Record<string, unknown>;
+  const rawType = record.type;
+  if (typeof rawType === "string" && rawType.toLowerCase() === "summary") {
+    return true;
+  }
+
+  return false;
 }
 
 function getProjectsRoot(): string | null {

@@ -76,7 +76,7 @@ export class SessionManager {
         setTimeout(() => {
           if (!session.hasSubscribers() && !this.hasPersistentState(session)) {
             this.sessionsList = this.sessionsList.filter(s => s !== session);
-            console.log('Cleaned up empty session:', session.id);
+            console.log('Cleaned up empty session:', session.claudeSessionId);
           }
         }, 5 * 60000); // 5 minute grace period
       }

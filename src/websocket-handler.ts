@@ -41,10 +41,14 @@ type IncomingMessage =
   | UnsubscribeIncomingMessage
   | ResumeIncomingMessage;
 
+interface ClientInfo {
+  id: string;
+  sessionId: string | null;
+}
 
 // Main WebSocket handler class
 export class WebSocketHandler {
-  private clients: Map<WSClient, string> = new Map();
+  private clients: Map<WSClient, ClientInfo> = new Map();
   private sessionManager = new SessionManager(() => new ClaudeAgentSDKClient())
 
   constructor() {
@@ -53,21 +57,21 @@ export class WebSocketHandler {
 
   public async onOpen(ws: WSClient) {
     const clientId = Date.now().toString() + '-' + Math.random().toString(36).substring(7);
-    this.clients.set(ws, clientId);
+    this.clients.set(ws, { id: clientId, sessionId: null });
     console.log('WebSocket client connected:', clientId);
 
     this.send(ws, { type: "connected", message: 'Connected to the Claude Code WebSocket server.' });
   }
 
   public onClose(ws: WSClient) {
-    const clientId = this.clients.get(ws);
-    if (!clientId) {
+    const clientInfo = this.clients.get(ws);
+    if (!clientInfo) {
       console.error("WebSocket client not registered on close");
       return;
     }
-    console.log('WebSocket client disconnected:', clientId);
+    console.log('WebSocket client disconnected:', clientInfo.id);
     this.clients.delete(ws);
-    this.sessionManager.unsubscribe(clientId);
+    this.sessionManager.unsubscribe(clientInfo.id);
   }
 
 
@@ -99,6 +103,12 @@ export class WebSocketHandler {
   }
 
   private async handleChatMessage(ws: WSClient, message: ChatIncomingMessage): Promise<void> {
+    const clientInfo = this.clients.get(ws);
+    if (!clientInfo) {
+      console.error("WebSocket client not registered");
+      return;
+    }
+
     const content = message.content?.trim();
     if (!content) {
       this.send(ws, {
@@ -109,9 +119,9 @@ export class WebSocketHandler {
       return;
     }
 
-    let sessionId = message.sessionId?.trim() || undefined;
-    const session = this.sessionManager.getOrCreateSession(sessionId);
-    sessionId = session.id;
+    let sessionId = message.sessionId?.trim() || clientInfo.sessionId || null;
+    const session = this.sessionManager.getOrCreateSession(sessionId || undefined);
+    sessionId = session.claudeSessionId;
 
     this.subscribe(session, ws);
 
@@ -119,11 +129,11 @@ export class WebSocketHandler {
   }
 
   private handleSessionMessage(session: Session, message: BroadcastMessage, clientId: string) {
-    for (const [ws, id] of this.clients.entries()) {
-      if (id === clientId) {
+    for (const [ws, info] of this.clients.entries()) {
+      if (info.id === clientId) {
         this.send(ws, {
           type: "session_message",
-          sessionId: session.id,
+          sessionId: session.claudeSessionId,
           message,
         });
       }
@@ -131,15 +141,21 @@ export class WebSocketHandler {
   }
 
   private subscribe(session: Session, client: WSClient) {
-    const clientId = this.clients.get(client);
-    if (!clientId) {
+    const clientInfo = this.clients.get(client);
+    if (!clientInfo) {
       console.error("WebSocket client not registered");
       return;
     }
-    session.subscribe(clientId, this.handleSessionMessage);
+    session.subscribe(clientInfo.id, this.handleSessionMessage);
   }
 
   private async handleResumeMessage(ws: WSClient, message: ResumeIncomingMessage): Promise<void> {
+    const clientInfo = this.clients.get(ws);
+    if (!clientInfo) {
+      console.error("WebSocket client not registered");
+      return;
+    }
+
     const rawSessionId = message.sessionId;
     const trimmedId =
       typeof rawSessionId === "string" ? rawSessionId.trim() : "";
@@ -156,6 +172,9 @@ export class WebSocketHandler {
     if (!session) {
       session = this.sessionManager.createSession();
     }
+
+    clientInfo.sessionId = trimmedId;
+    this.clients.set(ws, clientInfo);
 
     this.subscribe(session, ws);
 
@@ -191,8 +210,8 @@ export class WebSocketHandler {
   }
 
   private async handleUnsubscribeMessage(ws: WSClient, message: UnsubscribeIncomingMessage): Promise<void> {
-    const clientId = this.clients.get(ws);
-    if (!clientId) {
+    const clientInfo = this.clients.get(ws);
+    if (!clientInfo) {
       console.error("WebSocket client not registered");
       return;
     }
@@ -207,7 +226,7 @@ export class WebSocketHandler {
     }
 
     // Handle unsubscription logic
-    session.unsubscribe(clientId);
+    session.unsubscribe(clientInfo.id);
     this.send(ws, { type: "unsubscribed", sessionId: message.sessionId });
   }
 

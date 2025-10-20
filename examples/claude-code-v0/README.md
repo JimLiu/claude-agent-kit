@@ -4,7 +4,10 @@ This example project demonstrates a minimal, end-to-end integration of `@anthrop
 
 ## Demo
 
-<video src="screenshots/claude-code-v0.mp4" controls title="Claude code v0 demo" />
+
+[Demo](screenshots/claude-code-v0.mp4)
+<img width="1947" height="1259" alt="image" src="https://github.com/user-attachments/assets/046db1ec-b16a-4b5c-b09c-15076e16d1d4" />
+
 
 ## Key Features
 - **Chat-driven UI generation**: A single-page React client streams conversation events over WebSocket and renders Claude's partial responses as they arrive.

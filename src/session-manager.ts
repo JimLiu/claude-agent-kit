@@ -1,23 +1,12 @@
 import { Session } from "./session";
-import { IClaudeAgentSDKClient } from "./types";
-
-
-/** Optional parameters applied when creating a new session instance. */
-export interface SessionCreationOptions {
-  isExplicit?: boolean;
-}
+import type { AttachmentPayload, IClaudeAgentSDKClient, ISessionClient, PermissionMode, ThinkingLevel } from "./types";
 
 
 export class SessionManager {
 
   /** List of known sessions, including inactive ones. */
   private sessionsList: Session[] = [];
-  private createClient: ()=> IClaudeAgentSDKClient;
 
-  constructor(createClientFunc: ()=> IClaudeAgentSDKClient) {
-    this.createClient = createClientFunc;
-  }
-  
   get sessions(): Session[] {
     return this.sessionsList;
   }
@@ -29,64 +18,72 @@ export class SessionManager {
     );
   }
 
-  /** Look up a session by its Claude session id; optionally trigger a refresh. */
-  getSession(sessionId: string, shouldLoadMessages = false) :Session | undefined {
+  /** Look up a session by its Claude session id */
+  getSession(sessionId: string, shouldLoadMessages = false): Session | undefined {
     const existing = this.sessionsList.find(
-      (session) => session.claudeSessionId === sessionId,
+      (session) => session.sessionId === sessionId,
     );
+
     if (existing && shouldLoadMessages) {
-      void existing.loadFromServer();
+      void existing.resumeFrom(sessionId);
     }
+
     return existing;
   }
 
-  /**
-   * Create a new session instance, insert it at the head of the list, and mark it active.
-   * This is the central entry point for UIs that spin up ad-hoc conversations.
-   */
-  createSession(options: SessionCreationOptions = {}): Session {
-    const client = this.createClient();
-    const session = new Session(client);
-
-    session.isExplicit = options.isExplicit !== false;
-
-    this.sessionsList = [session, ...this.sessionsList];
-
+  createSession(sdkClient: IClaudeAgentSDKClient): Session {
+    const session = new Session(sdkClient);
+    this.sessionsList.push(session);
     return session;
   }
 
-  getOrCreateSession(sessionId?: string, options: SessionCreationOptions = {}): Session {
-    let session = sessionId ? this.getSession(sessionId) : undefined;
+  getOrCreateSession(client: ISessionClient): Session {
+    let session = client.sessionId ? this.getSession(client.sessionId) : undefined;
     if (!session) {
-      session = this.createSession(options);
+      session = this.createSession(client.sdkClient);
+      // Update the client's sessionId to match the newly created session
+      client.sessionId = session.sessionId || undefined;
     }
     return session;
   }
 
 
-  /** Determine whether a session has persisted state worth keeping in memory. */
-  private hasPersistentState(session: Session): boolean {
-    return Boolean(session.claudeSessionId) || session.messages.length > 0;
+  subscribe(client: ISessionClient) {
+    const session = this.getOrCreateSession(client);
+    session.subscribe(client);
   }
 
-  private cleanupEmptySessions() {
-    for (const session of this.sessions) {
-      if (!session.hasSubscribers() && !this.hasPersistentState(session)) {
-        // Keep session for a grace period (could be made configurable)
-        setTimeout(() => {
-          if (!session.hasSubscribers() && !this.hasPersistentState(session)) {
-            this.sessionsList = this.sessionsList.filter(s => s !== session);
-            console.log('Cleaned up empty session:', session.claudeSessionId);
-          }
-        }, 5 * 60000); // 5 minute grace period
-      }
+  unsubscribe(client: ISessionClient): void {
+    const session = client.sessionId ? this.getSession(client.sessionId) : undefined;
+    if (!session) {
+      return;
     }
+    session.unsubscribe(client);
   }
 
-  unsubscribe(clientId: string) {
-    for (const session of this.sessionsList) {
-      session.unsubscribe(clientId);
-    }
-    this.cleanupEmptySessions();
+  sendMessage(
+    client: ISessionClient, 
+    prompt: string,
+    attachments: AttachmentPayload[] | undefined
+  ): void {
+    const session = this.getOrCreateSession(client);
+    session.send(prompt, attachments);
+  }
+
+  setPermissionMode(
+    client: ISessionClient, 
+    mode: PermissionMode, 
+    persist?: boolean
+  ): void {
+    const session = this.getOrCreateSession(client);
+    session.setPermissionMode(mode, persist);
+  }
+
+  setThinkingLevel(
+    client: ISessionClient, 
+    value: ThinkingLevel
+  ): void {
+    const session = this.getOrCreateSession(client);
+    session.setThinkingLevel(value);
   }
 }

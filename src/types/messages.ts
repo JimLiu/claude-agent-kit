@@ -1,14 +1,4 @@
-import type {
-  SDKMessage,
-  SDKUserMessage,
-  SDKAssistantMessage,
-  SDKResultMessage,
-  Options as SDKOptions
-} from "@anthropic-ai/claude-agent-sdk";
-
-export type { SDKUserMessage, SDKMessage, SDKAssistantMessage, SDKResultMessage, SDKOptions };
-
-export type ChatMessageType = SDKMessage['type'];
+import type { SDKAssistantMessage } from "@anthropic-ai/claude-agent-sdk";
 
 export interface TextContentBlock {
   type: 'text';
@@ -57,7 +47,6 @@ export interface ToolResultContentBlock {
   is_error: boolean;
 }
 
-
 export type APIAssistantContentBlock = SDKAssistantMessage['message']['content'];
 
 
@@ -100,12 +89,3 @@ export interface TodoItem {
   status: string;
 }
 
-export interface IClaudeAgentSDKClient {
-  queryStream(
-    prompt: string | AsyncIterable<SDKUserMessage>,
-    options?: Partial<SDKOptions>
-  ): AsyncIterable<SDKMessage>;
-  
-
-  getSession(sessionId: string | undefined): Promise<{ messages: SDKMessage[] }>;
-}

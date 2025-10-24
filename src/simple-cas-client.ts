@@ -1,9 +1,15 @@
-import { HookJSONOutput, query } from "@anthropic-ai/claude-agent-sdk";
+import { query } from "@anthropic-ai/claude-agent-sdk";
 import { promises as fs } from "node:fs";
 import path from "node:path";
 import type { Dirent } from "node:fs";
-import type { IClaudeAgentSDKClient, SDKMessage, SDKOptions, SDKUserMessage } from "./types";
-import { AGENT_PROMPT } from "./agent-prompt";
+import type { 
+  IClaudeAgentSDKClient, 
+  PermissionMode, 
+  SDKMessage, 
+  SDKOptions, 
+  SDKUserMessage 
+} from "./types";
+// import { AGENT_PROMPT } from "./agent-prompt";
 
 const SESSION_FILE_EXTENSION = ".jsonl";
 
@@ -35,11 +41,11 @@ export function parseSessionMessagesFromJsonl(fileContent: string): SDKMessage[]
   return messages;
 }
 
-export class ClaudeAgentSDKClient implements IClaudeAgentSDKClient {
+export class SimpleClaudeAgentSDKClient implements IClaudeAgentSDKClient {
   private defaultOptions: SDKOptions;
 
   constructor(options?: Partial<SDKOptions>) {
-        const workspacePath = process.cwd();
+    const workspacePath = process.cwd();
     this.defaultOptions = {
       maxTurns: 100,
       cwd: workspacePath,
@@ -48,50 +54,18 @@ export class ClaudeAgentSDKClient implements IClaudeAgentSDKClient {
         "Task", "Bash", "Glob", "Grep", "LS", "ExitPlanMode", "Read", "Edit", "MultiEdit", "Write", "NotebookEdit",
         "WebFetch", "TodoWrite", "WebSearch", "BashOutput", "KillBash",
       ],
-      systemPrompt: AGENT_PROMPT,
+      // systemPrompt: AGENT_PROMPT,
       mcpServers: {
       },
       hooks: {
-        PreToolUse: [
-          {
-            matcher: "Write|Edit|MultiEdit",
-            hooks: [
-              async (input: any): Promise<HookJSONOutput> => {
-                const toolName = input.tool_name;
-                const toolInput = input.tool_input;
-
-                if (!['Write', 'Edit', 'MultiEdit'].includes(toolName)) {
-                  return { continue: true };
-                }
-
-                let filePath = '';
-                if (toolName === 'Write' || toolName === 'Edit') {
-                  filePath = toolInput.file_path || '';
-                } else if (toolName === 'MultiEdit') {
-                  filePath = toolInput.file_path || '';
-                }
-
-                const ext = path.extname(filePath).toLowerCase();
-                if (ext === '.js' || ext === '.ts') {
-                  const customScriptsPath = path.join(process.cwd(), 'agent', 'custom_scripts');
-
-                  if (!filePath.startsWith(customScriptsPath)) {
-                    return {
-                      decision: 'block',
-                      stopReason: `Script files (.js and .ts) must be written to the custom_scripts directory. Please use the path: ${customScriptsPath}/${path.basename(filePath)}`,
-                      continue: false
-                    };
-                  }
-                }
-
-                return { continue: true };
-              }
-            ]
-          }
-        ]
       },
       ...options
     };
+  }
+
+  setPermissionMode(mode: PermissionMode) {
+    this.defaultOptions.permissionMode = mode;
+    return Promise.resolve(true);
   }
 
   async *queryStream(
@@ -108,7 +82,7 @@ export class ClaudeAgentSDKClient implements IClaudeAgentSDKClient {
     }
   }
 
-  async getSession(sessionId: string | undefined): Promise<{ messages: SDKMessage[] }> {
+  async loadMessages(sessionId: string | undefined): Promise<{ messages: SDKMessage[] }> {
     if (!sessionId) {
       return { messages: [] };
     }

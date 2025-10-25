@@ -43,6 +43,14 @@ for (const message of session.messages) {
 }
 ```
 
+## Testing
+
+```bash
+npm test
+```
+
+The Vitest configuration only scans `src/**/*.{test,spec}.{ts,tsx}` so you can colocate tests with the implementation without affecting the published build artifacts. Use `npm run test:watch` for an interactive loop.
+
 ## Contributing
 
 1. Fork the repository.

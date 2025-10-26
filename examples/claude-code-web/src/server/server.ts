@@ -5,7 +5,7 @@ import express from 'express'
 import type { ViteDevServer } from 'vite'
 import { WebSocketServer } from 'ws'
 
-import { WebSocketHandler } from '../ccsdk/websocket-handler'
+import { WebSocketHandler } from 'claude-agent-kit'
 import { registerApiRoutes } from './api'
 import { registerRoutes } from './routes'
 

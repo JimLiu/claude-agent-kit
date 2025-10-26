@@ -4,11 +4,9 @@ import type {
   ChatIncomingMessage,
   IClaudeAgentSDKClient,
   IncomingMessage,
-  ISessionClient,
-  OutcomingMessage,
   SetPermissionModeIncomingMessage,
   SetThinkingLevelIncomingMessage,
-} from "./types";
+} from "../types";
 import { SimpleClaudeAgentSDKClient } from "./simple-cas-client";
 import { WebSocketSessionClient } from "./websocket-session-client";
 

@@ -1,5 +1,5 @@
 import type { SDKMessage } from "@anthropic-ai/claude-agent-sdk";
-import { generateId } from "../lib/id";
+import { generateId } from "../utils/id";
 import type { ChatMessage, MessageContentBlock, ChatMessagePart, ChatMessageType } from "../types";
 
 function createChatMessagePart(content: MessageContentBlock) : ChatMessagePart {

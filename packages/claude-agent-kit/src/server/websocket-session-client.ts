@@ -1,5 +1,5 @@
 import type { WebSocket } from "ws";
-import type { IClaudeAgentSDKClient, ISessionClient, OutcomingMessage } from "./types";
+import type { IClaudeAgentSDKClient, ISessionClient, OutcomingMessage } from "../types";
 
 
 export class WebSocketSessionClient implements ISessionClient {

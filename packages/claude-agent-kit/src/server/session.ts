@@ -1,6 +1,6 @@
 import { randomUUID } from "node:crypto";
 
-import { buildUserMessageContent } from "./messages/build-user-message-content";
+import { buildUserMessageContent } from "../messages/build-user-message-content";
 import type { 
   AttachmentPayload,
   ClaudeConfig, 
@@ -14,7 +14,7 @@ import type {
   IClaudeAgentSDKClient,
   ISessionClient,
   OutcomingMessage
-} from "./types";
+} from "../types";
 
 
 export class Session {

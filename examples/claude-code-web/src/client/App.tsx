@@ -25,8 +25,7 @@ import type {
   UserMessage,
 } from '@/types/session'
 
-import { ChatMessage } from '../ccsdk/chat-message'
-import type { AttachmentPayload, ToolResultContentBlock } from '../ccsdk/types'
+import type { AttachmentPayload, ToolResultContentBlock, ChatMessage } from 'claude-agent-kit/types'
 import {
   SerializedChatMessage,
   createSystemMessage,

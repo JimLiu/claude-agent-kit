@@ -1,5 +1,5 @@
 import { Session } from "./session";
-import type { AttachmentPayload, IClaudeAgentSDKClient, ISessionClient, PermissionMode, ThinkingLevel } from "./types";
+import type { AttachmentPayload, IClaudeAgentSDKClient, ISessionClient, PermissionMode, ThinkingLevel } from "../types";
 
 
 export class SessionManager {

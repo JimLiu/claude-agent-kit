@@ -1,8 +1,8 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import type { WebSocket } from "ws";
-import { WebSocketHandler } from "./websocket-handler";
-import type { ISessionClient, PermissionMode, ThinkingLevel } from "./types";
-import type { SessionManager } from "./session-manager";
+import { WebSocketHandler } from "../src/websocket-handler";
+import type { ISessionClient, PermissionMode, ThinkingLevel } from "../src/types";
+import type { SessionManager } from "../src/session-manager";
 
 type MockWs = WebSocket & { send: ReturnType<typeof vi.fn> };
 

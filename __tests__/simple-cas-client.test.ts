@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { promises as fs } from "node:fs";
-import { parseSessionMessagesFromJsonl, readSessionMessages } from "./simple-cas-client";
+import { parseSessionMessagesFromJsonl, readSessionMessages } from "../src/simple-cas-client";
 
 describe("parseSessionMessagesFromJsonl", () => {
   it("parses JSONL content, normalizes session_id, and skips summaries", () => {

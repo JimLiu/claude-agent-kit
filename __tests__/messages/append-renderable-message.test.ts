@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { appendRenderableMessage } from "./append-renderable-message";
-import type { ChatMessage } from "../types";
+import { appendRenderableMessage } from "../../src/messages/append-renderable-message";
+import type { ChatMessage } from "../../src/types";
 import type { SDKMessage } from "@anthropic-ai/claude-agent-sdk";
 
 function createAssistantMessageWithToolUse(): ChatMessage {

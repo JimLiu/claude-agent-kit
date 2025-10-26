@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { Session } from "./session";
-import type { IClaudeAgentSDKClient, SDKMessage } from "./types";
+import { Session } from "../src/session";
+import type { IClaudeAgentSDKClient, SDKMessage } from "../src/types";
 
 function createMockSdkClient(): IClaudeAgentSDKClient {
   return {

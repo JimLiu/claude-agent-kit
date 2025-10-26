@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { createChatMessageFromSDKMessage } from "./create-message";
-import type { MessageContentBlock } from "../types";
+import { createChatMessageFromSDKMessage } from "../../src/messages/create-message";
+import type { MessageContentBlock } from "../../src/types";
 import type { SDKMessage } from "@anthropic-ai/claude-agent-sdk";
 
 describe("createChatMessageFromSDKMessage", () => {

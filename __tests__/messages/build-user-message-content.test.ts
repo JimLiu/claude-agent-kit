@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { buildUserMessageContent } from "./build-user-message-content";
-import type { AttachmentPayload } from "../types";
+import { buildUserMessageContent } from "../../src/messages/build-user-message-content";
+import type { AttachmentPayload } from "../../src/types";
 
 describe("buildUserMessageContent", () => {
   afterEach(() => {
@@ -84,4 +84,3 @@ describe("buildUserMessageContent", () => {
     ]);
   });
 });
-

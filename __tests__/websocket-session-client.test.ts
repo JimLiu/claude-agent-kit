@@ -1,7 +1,7 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import type { WebSocket } from "ws";
-import { WebSocketSessionClient } from "./websocket-session-client";
-import type { IClaudeAgentSDKClient, OutcomingMessage } from "./types";
+import { WebSocketSessionClient } from "../src/websocket-session-client";
+import type { IClaudeAgentSDKClient, OutcomingMessage } from "../src/types";
 
 function createMockSdkClient(): IClaudeAgentSDKClient {
   return {

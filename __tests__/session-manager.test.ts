@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
-import { SessionManager } from "./session-manager";
-import type { AttachmentPayload, IClaudeAgentSDKClient, ISessionClient, PermissionMode, ThinkingLevel } from "./types";
+import { SessionManager } from "../src/session-manager";
+import type { AttachmentPayload, IClaudeAgentSDKClient, ISessionClient, PermissionMode, ThinkingLevel } from "../src/types";
 
 function createMockSdkClient(): IClaudeAgentSDKClient {
   return {

@@ -14,3 +14,8 @@ export {
   createTextMessage,
 } from "./create-message";
 
+export {
+  addNewSDKMessage,
+  convertSDKMessages,
+  coalesceReadMessages,
+} from "./messages";

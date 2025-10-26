@@ -1,4 +1,4 @@
-import { ChatMessagePart as ChatMessagePartModel } from '../../../ccsdk/chat-message'
+import { ChatMessagePart as ChatMessagePartModel } from 'claude-agent-kit/types'
 import type { AttachmentChipType } from '../chat/attachment-chip'
 import type { MessagePartProps } from './types'
 import { AttachmentChip } from '../chat/attachment-chip'
@@ -89,7 +89,9 @@ export function MessagePart({ content, context, plainText }: MessagePartProps) {
           block.content.map((nested, index) => (
             <MessagePart
               key={`tool-result-${index}`}
-              content={new ChatMessagePartModel(nested)}
+              content={{
+                content: nested,
+              } as ChatMessagePartModel}
               context={context}
               plainText={plainText}
             />

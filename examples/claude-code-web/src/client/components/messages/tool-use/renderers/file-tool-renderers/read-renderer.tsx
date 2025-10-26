@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react';
-import type { ToolResultContentBlock } from '../../../../../../ccsdk/types';
+import type { ToolResultContentBlock } from 'claude-agent-kit/types';
 import type { ClaudeMessageContext } from '../../../types';
 import { FileToolRenderer } from '../file-tool-renderer';
 import { isNonEmptyRecord, type ToolInput } from '../utils';

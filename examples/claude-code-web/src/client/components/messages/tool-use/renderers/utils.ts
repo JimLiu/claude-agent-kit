@@ -2,7 +2,7 @@ import type {
   DocumentContentBlock,
   TextContentBlock,
   ToolResultContentBlock,
-} from '../../../../../ccsdk/types';
+} from 'claude-agent-kit/types';
 
 export type ToolInput = Record<string, unknown> | undefined;
 

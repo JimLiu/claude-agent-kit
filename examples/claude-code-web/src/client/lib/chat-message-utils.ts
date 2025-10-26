@@ -1,9 +1,10 @@
-import { ChatMessage, ChatMessagePart } from '../../ccsdk/chat-message'
 import type {
+  ChatMessage,
+  ChatMessagePart,
   ChatMessageType,
   MessageContentBlock,
   ToolResultContentBlock,
-} from '../../ccsdk/types'
+} from 'claude-agent-kit/types'
 
 export type SerializedChatMessage = {
   id: string
@@ -19,14 +20,23 @@ export function hydrateChatMessage(
   message: SerializedChatMessage,
 ): ChatMessage {
   const parts = message.content.map((part) => {
-    const chatPart = new ChatMessagePart(part.content)
+    const chatPart: ChatMessagePart = {
+      content: part.content,
+      toolResult: part.toolResult,
+    }
     if (part.toolResult) {
-      chatPart.setToolResult(part.toolResult)
+      chatPart.toolResult = part.toolResult
     }
     return chatPart
   })
 
-  return new ChatMessage(message.type, parts, message.timestamp, message.id)
+  // return new ChatMessage(message.type, parts, message.timestamp, message.id)
+  return {
+    id: message.id,
+    type: message.type,
+    timestamp: message.timestamp,
+    content: parts,
+  }
 }
 
 export function updateToolResult(
@@ -36,25 +46,25 @@ export function updateToolResult(
 ): ChatMessage {
   const parts = message.content.map((part) => {
     if (part.content.type === 'tool_use' && part.content.id === toolUseId) {
-      const updated = new ChatMessagePart(part.content)
-      updated.setToolResult(result)
+      const updated: ChatMessagePart = { content: part.content, toolResult: result }
       return updated
     }
 
-    const cloned = new ChatMessagePart(part.content)
-    const toolResult = part.toolResult
-    if (toolResult) {
-      cloned.setToolResult(toolResult)
-    }
+    const cloned: ChatMessagePart = { content: part.content, toolResult: part.toolResult }
     return cloned
   })
 
-  return new ChatMessage(message.type, parts, message.timestamp, message.id)
+  return {
+    id: message.id,
+    type: message.type,
+    timestamp: message.timestamp,
+    content: parts,
+  }
 }
 
 export function createSystemMessage(text: string): ChatMessage {
-  const part = new ChatMessagePart({ type: 'text', text })
-  return new ChatMessage('system', [part])
+  const part = { content: { type: 'text', text }, toolResult: undefined }
+  return { id: 'system', type: 'user', timestamp: Date.now(), content: [part] }
 }
 
 export function sortMessages(messages: ChatMessage[]): ChatMessage[] {

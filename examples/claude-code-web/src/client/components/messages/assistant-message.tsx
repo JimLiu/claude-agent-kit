@@ -1,7 +1,7 @@
 import { CircleIcon, DotIcon } from "lucide-react";
 import { useMemo } from "react";
 
-import type { ChatMessagePart } from "../../../ccsdk/chat-message";
+import type { ChatMessagePart } from "claude-agent-kit/types";
 import type { ClaudeMessageContext } from "./types";
 import { MessagePart } from "./message-part";
 import { cn } from "../../lib/utils";

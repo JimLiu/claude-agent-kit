@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef } from 'react'
 
-import { ChatMessage } from '../../../ccsdk/chat-message'
+import type { ChatMessage } from 'claude-agent-kit/types'
 import type { ClaudeMessageContext } from '../messages/types'
 
 import { EmptyState } from '../messages/empty-state'

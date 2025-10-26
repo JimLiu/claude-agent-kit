@@ -12,14 +12,14 @@ import {
 import type { ComponentProps, ReactNode } from "react";
 import { isValidElement } from "react";
 
-import type { ToolResultContentBlock } from "../../../../../ccsdk/types";
+import type { ToolResultContentBlock } from "claude-agent-kit/types";
 import type { ClaudeMessageContext } from "../../types";
 import {
   isNonEmptyRecord,
   stringifyInput,
   toDisplayText,
-  type ToolInput,
 } from "./utils";
+import type { ToolInput } from "./utils";
 
 export type ToolState =
   | "input-streaming"

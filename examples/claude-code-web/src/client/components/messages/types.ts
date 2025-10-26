@@ -1,4 +1,4 @@
-import type { ChatMessage, ChatMessagePart } from '../../../ccsdk/chat-message'
+import type { ChatMessage, ChatMessagePart } from 'claude-agent-kit/types'
 
 export interface FileOpenLocation {
   startLine?: number

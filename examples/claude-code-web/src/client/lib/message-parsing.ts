@@ -1,4 +1,4 @@
-import type { MessageContentBlock } from '../../ccsdk/types'
+import type { MessageContentBlock } from 'claude-agent-kit/types'
 
 export type ParsedInterruptContent = {
   type: 'interrupt'

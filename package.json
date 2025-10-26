@@ -1,15 +1,17 @@
 {
   "name": "claude-agent-kit-workspace",
   "private": true,
+  "packageManager": "pnpm@10.11.1",
   "workspaces": [
-    "packages/*"
+    "packages/*",
+    "examples/*"
   ],
   "scripts": {
-    "build": "npm run -w claude-agent-kit build",
-    "clean": "npm run -w claude-agent-kit clean",
-    "test": "npm run -w claude-agent-kit test",
-    "test:watch": "npm run -w claude-agent-kit test:watch",
-    "prepare": "npm run build"
+    "build": "pnpm --filter claude-agent-kit run build",
+    "clean": "pnpm --filter claude-agent-kit run clean",
+    "test": "pnpm --filter claude-agent-kit run test",
+    "test:watch": "pnpm --filter claude-agent-kit run test:watch",
+    "prepare": "pnpm run build"
   },
   "devDependencies": {
     "@anthropic-ai/claude-agent-sdk": "^0.1.22",

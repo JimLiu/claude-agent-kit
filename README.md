@@ -12,8 +12,8 @@ Utilities, patterns, and examples built around `@anthropic-ai/claude-agent-sdk`.
 ## Getting Started
 
 ```bash
-npm install
-npm run build
+pnpm install
+pnpm run build
 ```
 
 Import the pieces you need from the top-level entry point:
@@ -46,16 +46,16 @@ for (const message of session.messages) {
 ## Testing
 
 ```bash
-npm test
+pnpm test
 ```
 
-The Vitest configuration only scans `src/**/*.{test,spec}.{ts,tsx}` so you can colocate tests with the implementation without affecting the published build artifacts. Use `npm run test:watch` for an interactive loop.
+The Vitest configuration only scans `src/**/*.{test,spec}.{ts,tsx}` so you can colocate tests with the implementation without affecting the published build artifacts. Use `pnpm run test:watch` for an interactive loop.
 
 ## Contributing
 
 1. Fork the repository.
-2. Install dependencies with `npm install`.
-3. Run `npm run build` and open a pull request with your changes.
+2. Install dependencies with `pnpm install`.
+3. Run `pnpm run build` and open a pull request with your changes.
 
 ## License
 

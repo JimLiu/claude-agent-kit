@@ -19,7 +19,7 @@
     "build": "tsc -p tsconfig.json",
     "clean": "rm -rf dist",
     "lint": "echo \"Add your preferred linter and update scripts\" && exit 0",
-    "prepare": "npm run build",
+    "prepare": "pnpm run build",
     "test": "vitest run",
     "test:watch": "vitest"
   },

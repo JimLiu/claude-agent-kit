@@ -1,20 +1,21 @@
 import { atom } from 'jotai'
-import type { ChatMessage } from 'claude-agent-kit/types'
+import type { ChatMessage, SessionSDKOptions } from 'claude-agent-kit/types'
 
-import type { PermissionMode, ThinkingLevel } from '@/types/session'
+const createDefaultOptions = (): SessionSDKOptions => ({
+  permissionMode: 'default',
+  thinkingLevel: 'off',
+})
 
 export type ChatSessionInfo = {
   isBusy: boolean
   isLoading: boolean
-  permissionMode: PermissionMode
-  thinkingLevel: ThinkingLevel
+  options: SessionSDKOptions
 }
 
 export const createDefaultChatSessionInfo = (): ChatSessionInfo => ({
   isBusy: false,
   isLoading: false,
-  permissionMode: 'default',
-  thinkingLevel: 'off',
+  options: createDefaultOptions(),
 })
 
 export const chatMessagesAtom = atom<ChatMessage[]>([])

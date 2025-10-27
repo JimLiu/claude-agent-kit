@@ -1,34 +1,82 @@
 import { randomUUID } from "node:crypto";
 
 import { buildUserMessageContent } from "../messages/build-user-message-content";
-import type { 
+import type {
   AttachmentPayload,
-  ClaudeConfig, 
-  PermissionMode, 
-  SDKMessage, 
-  SDKOptions, 
-  SDKUserMessage, 
-  SessionConfig, 
-  ThinkingLevel, 
+  ClaudeConfig,
+  SDKMessage,
+  SDKUserMessage,
+  SessionConfig,
   UsageSummary,
   IClaudeAgentSDKClient,
   ISessionClient,
   OutcomingMessage,
   SessionStateUpdate,
-  SessionStateSnapshot
+  SessionStateSnapshot,
+  SessionSDKOptions,
 } from "../types";
-import type { SDKSystemMessage } from "@anthropic-ai/claude-agent-sdk";
+import type {
+  Options as SDKOptions,
+  SDKSystemMessage,
+} from "@anthropic-ai/claude-agent-sdk";
+
+const DEFAULT_ALLOWED_TOOLS: readonly string[] = [
+  "Task",
+  "Bash",
+  "Glob",
+  "Grep",
+  "LS",
+  "ExitPlanMode",
+  "Read",
+  "Edit",
+  "MultiEdit",
+  "Write",
+  "NotebookEdit",
+  "WebFetch",
+  "TodoWrite",
+  "WebSearch",
+  "BashOutput",
+  "KillBash",
+];
+
+const DEFAULT_SESSION_OPTIONS: SessionSDKOptions = {
+  maxTurns: 100,
+  allowedTools: [...DEFAULT_ALLOWED_TOOLS],
+  mcpServers: {},
+  hooks: {},
+  thinkingLevel: "default_on",
+};
+
+function normalizeWorkspacePath(value?: string | null): string | undefined {
+  const trimmed = typeof value === "string" ? value.trim() : undefined;
+  return trimmed ? trimmed : undefined;
+}
+
+function createDefaultOptions(workspacePath?: string | null): SessionSDKOptions {
+  const cwd = normalizeWorkspacePath(workspacePath);
+  return {
+    ...DEFAULT_SESSION_OPTIONS,
+    allowedTools: DEFAULT_SESSION_OPTIONS.allowedTools
+      ? [...DEFAULT_SESSION_OPTIONS.allowedTools]
+      : undefined,
+    mcpServers: {
+      ...(DEFAULT_SESSION_OPTIONS.mcpServers ?? {}),
+    },
+    hooks: {
+      ...(DEFAULT_SESSION_OPTIONS.hooks ?? {}),
+    },
+    ...(cwd ? { cwd } : {}),
+  };
+}
 
 
 export class Session {
   sessionId: string | null = null; // Claude session ID
-  permissionMode: PermissionMode = "default";
-  workspacePath: string | undefined = undefined;
+  options: SessionSDKOptions = createDefaultOptions();
   usageSummary: UsageSummary | undefined;
   claudeConfig: ClaudeConfig | undefined;
   modelSelection: string | undefined;
   config: SessionConfig | undefined;
-  thinkingLevel: ThinkingLevel = "default_on";
   lastModifiedTime = Date.now();
   summary: string | undefined;
   error: Error | string | undefined;
@@ -71,18 +119,37 @@ export class Session {
     this.emitSessionStateChange({ isLoading: state });
   }
 
-  setPermissionMode(mode: PermissionMode, persist?: boolean): void {
-    this.permissionMode = mode;
-    this.emitSessionStateChange({ permissionMode: mode });
+  setSDKOptions(
+    options: Partial<SessionSDKOptions>,
+  ): void {
+    const hasExplicitCwd = Object.prototype.hasOwnProperty.call(options, "cwd");
+    const normalizedCwd = hasExplicitCwd ? normalizeWorkspacePath(options.cwd ?? undefined) : undefined;
 
-    if (persist) {
-      // Implementation for persisting the permission mode
+    const normalized: Partial<SessionSDKOptions> = {
+      ...options,
+      ...(hasExplicitCwd ? { cwd: normalizedCwd } : {}),
+    };
+
+    const baseOptions = createDefaultOptions(hasExplicitCwd ? normalizedCwd : this.options.cwd);
+    const nextOptions: SessionSDKOptions = {
+      ...baseOptions,
+      ...this.options,
+      ...normalized,
+    };
+
+    if (hasExplicitCwd && !normalizedCwd) {
+      delete (nextOptions as Record<string, unknown>).cwd;
     }
+
+    this.options = nextOptions;
+    this.emitSessionStateChange({ options: this.buildEffectiveOptions() });
   }
 
-  setThinkingLevel(value: ThinkingLevel): void {
-    this.thinkingLevel = value;
-    this.emitSessionStateChange({ thinkingLevel: value });
+  private buildEffectiveOptions(): SessionSDKOptions {
+    return {
+      ...createDefaultOptions(this.options.cwd),
+      ...this.options,
+    };
   }
 
   get messages(): SDKMessage[] {
@@ -97,8 +164,11 @@ export class Session {
   private setMessages(messages: SDKMessage[]): void {
     this.messageList = messages;
 
-    if (!this.workspacePath) {
-      this.workspacePath = this.findWorkspacePathFromMessages(messages);
+    if (!this.options.cwd) {
+      const detectedWorkspace = this.findWorkspacePathFromMessages(messages);
+      if (detectedWorkspace) {
+        this.setSDKOptions({ cwd: detectedWorkspace });
+      }
     }
 
     console.log(
@@ -283,11 +353,10 @@ export class Session {
 
     this.queryPromise = (async () => {
       try {
-        const options: Partial<SDKOptions> = {
+        const { thinkingLevel: _thinkingLevel, ...effectiveOptions } = this.buildEffectiveOptions();
+        const options: SDKOptions = {
+          ...effectiveOptions,
           abortController: this.abortController,
-          cwd: this.workspacePath || undefined,
-          permissionMode: this.permissionMode,
-          // thinkingLevel: this.thinkingLevel, // @TODO
         };
 
         // Use resume for multi-turn, continue for first message
@@ -343,8 +412,7 @@ export class Session {
     return {
       isBusy: this.busyState,
       isLoading: this.loadingState,
-      permissionMode: this.permissionMode,
-      thinkingLevel: this.thinkingLevel,
+      options: this.buildEffectiveOptions(),
     };
   }
 
@@ -360,6 +428,7 @@ export class Session {
     if (!update || Object.keys(update).length === 0) {
       return;
     }
+    // TODO: debounce
     this.notifyClients("sessionStateChanged", this.createSessionStateMessage(update));
   }
 }

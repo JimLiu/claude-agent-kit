@@ -17,41 +17,18 @@ import {
 export { parseSessionMessagesFromJsonl, readSessionMessages } from "../utils/session-files";
 
 export class SimpleClaudeAgentSDKClient implements IClaudeAgentSDKClient {
-  private defaultOptions: SDKOptions;
 
-  constructor(options?: Partial<SDKOptions>) {
-    const workspacePath = process.cwd();
-    this.defaultOptions = {
-      maxTurns: 100,
-      cwd: workspacePath,
-      // model: "opus",
-      allowedTools: [
-        "Task", "Bash", "Glob", "Grep", "LS", "ExitPlanMode", "Read", "Edit", "MultiEdit", "Write", "NotebookEdit",
-        "WebFetch", "TodoWrite", "WebSearch", "BashOutput", "KillBash",
-      ],
-      // systemPrompt: AGENT_PROMPT,
-      mcpServers: {
-      },
-      hooks: {
-      },
-      ...options
-    };
-  }
-
-  setPermissionMode(mode: PermissionMode) {
-    this.defaultOptions.permissionMode = mode;
-    return Promise.resolve(true);
+  constructor() {
   }
 
   async *queryStream(
     prompt: string | AsyncIterable<SDKUserMessage>,
     options?: Partial<SDKOptions>
   ): AsyncIterable<SDKMessage> {
-    const mergedOptions = { ...this.defaultOptions, ...options };
 
     for await (const message of query({
       prompt,
-      options: mergedOptions
+      options
     })) {
       yield message;
     }
@@ -74,7 +51,6 @@ export class SimpleClaudeAgentSDKClient implements IClaudeAgentSDKClient {
       filePath = await locateSessionFile({
         projectsRoot,
         sessionId: normalizedSessionId,
-        cwd: this.defaultOptions.cwd,
       });
     } catch (error) {
       console.error(`Failed to locate session '${normalizedSessionId}':`, error);

@@ -31,9 +31,9 @@ export function normalizeSessionId(value: string): string {
 }
 
 export async function locateSessionFile(params: LocateSessionFileParams): Promise<string | null> {
-  const { projectsRoot, sessionId, cwd } = params;
+  const { projectsRoot, sessionId } = params;
 
-  const orderedProjectDirs = await collectCandidateProjectDirs(projectsRoot, cwd);
+  const orderedProjectDirs = await collectCandidateProjectDirs(projectsRoot);
 
   for (const projectDir of orderedProjectDirs) {
     const sessionPath = path.join(projectDir, `${sessionId}${SESSION_FILE_EXTENSION}`);
@@ -96,7 +96,7 @@ export function parseSessionMessagesFromJsonl(fileContent: string): SDKMessage[]
   return messages;
 }
 
-async function collectCandidateProjectDirs(projectsRoot: string, cwd?: string): Promise<string[]> {
+async function collectCandidateProjectDirs(projectsRoot: string): Promise<string[]> {
   let entries: Dirent[];
   try {
     entries = await fs.readdir(projectsRoot, { withFileTypes: true });
@@ -110,21 +110,6 @@ async function collectCandidateProjectDirs(projectsRoot: string, cwd?: string): 
   const directories = entries.filter((entry) => entry.isDirectory());
   const candidates: string[] = [];
   const seen = new Set<string>();
-
-  if (cwd) {
-    const sanitized = sanitizeProjectId(cwd);
-    for (const entry of directories) {
-      if (!entry.name.startsWith(sanitized)) {
-        continue;
-      }
-      const fullPath = path.join(projectsRoot, entry.name);
-      if (seen.has(fullPath)) {
-        continue;
-      }
-      candidates.push(fullPath);
-      seen.add(fullPath);
-    }
-  }
 
   for (const entry of directories) {
     const fullPath = path.join(projectsRoot, entry.name);

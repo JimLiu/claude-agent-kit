@@ -5,10 +5,9 @@ import type {
   IClaudeAgentSDKClient,
   IncomingMessage,
   ResumeSessionIncomingMessage,
-  SetPermissionModeIncomingMessage,
-  SetThinkingLevelIncomingMessage,
+  SessionSDKOptions,
+  SetSDKOptionsIncomingMessage,
 } from "../types";
-import { SimpleClaudeAgentSDKClient } from "./simple-cas-client";
 import { WebSocketSessionClient } from "./websocket-session-client";
 
 export class WebSocketHandler {
@@ -16,9 +15,11 @@ export class WebSocketHandler {
   private sessionManager = new SessionManager()
   
   sdkClient: IClaudeAgentSDKClient;
+  options: SessionSDKOptions;
 
-  constructor() {
-    this.sdkClient = new SimpleClaudeAgentSDKClient();
+  constructor(sdkClient: IClaudeAgentSDKClient, options: SessionSDKOptions) {
+    this.sdkClient = sdkClient;
+    this.options = options;
   }
 
   private send(ws: WebSocket, payload: Record<string, unknown>): void {
@@ -63,11 +64,8 @@ export class WebSocketHandler {
       case "chat":
         await this.handleChatMessage(ws, message);
         break;
-      case "setPermissionMode":
-        this.handleSetPermissionMode(ws, message);
-        break;
-      case "setThinkingLevel":
-        this.handleSetThinkingLevel(ws, message);
+      case "setSDKOptions":
+        this.handleSetSDKOptions(ws, message);
         break;
       case "resume":
         await this.handleResumeMessage(ws, message);
@@ -84,7 +82,7 @@ export class WebSocketHandler {
   }
 
   
-  private handleSetPermissionMode(ws: WebSocket, message: SetPermissionModeIncomingMessage): void {
+  private handleSetSDKOptions(ws: WebSocket, message: SetSDKOptionsIncomingMessage): void {
     const client = this.clients.get(ws);
     if (!client) {
       console.error("WebSocket client not registered");
@@ -93,26 +91,10 @@ export class WebSocketHandler {
     }
 
     try {
-      this.sessionManager.setPermissionMode(client, message.mode);
+      this.sessionManager.setSDKOptions(client, message.options);
     } catch (error) {
-      console.error("Failed to set permission mode:", error);
-      this.send(ws, { type: "error", error: "Failed to set permission mode" });
-    }
-  }
-
-  private handleSetThinkingLevel(ws: WebSocket, message: SetThinkingLevelIncomingMessage): void {
-    const client = this.clients.get(ws);
-    if (!client) {
-      console.error("WebSocket client not registered");
-      this.send(ws, { type: "error", error: "WebSocket client not registered" });
-      return;
-    }
-
-    try {
-      this.sessionManager.setThinkingLevel(client, message.value);
-    } catch (error) {
-      console.error("Failed to set thinking level:", error);
-      this.send(ws, { type: "error", error: "Failed to set thinking level" });
+      console.error("Failed to set SDK options:", error);
+      this.send(ws, { type: "error", error: "Failed to set SDK options" });
     }
   }
 

@@ -1,5 +1,10 @@
 import { Session } from "./session";
-import type { AttachmentPayload, IClaudeAgentSDKClient, ISessionClient, PermissionMode, ThinkingLevel } from "../types";
+import type {
+  AttachmentPayload,
+  IClaudeAgentSDKClient,
+  ISessionClient,
+  SessionSDKOptions,
+} from "../types";
 
 
 export class SessionManager {
@@ -70,20 +75,11 @@ export class SessionManager {
     session.send(prompt, attachments);
   }
 
-  setPermissionMode(
-    client: ISessionClient, 
-    mode: PermissionMode, 
-    persist?: boolean
+  setSDKOptions(
+    client: ISessionClient,
+    options: Partial<SessionSDKOptions>
   ): void {
     const session = this.getOrCreateSession(client);
-    session.setPermissionMode(mode, persist);
-  }
-
-  setThinkingLevel(
-    client: ISessionClient, 
-    value: ThinkingLevel
-  ): void {
-    const session = this.getOrCreateSession(client);
-    session.setThinkingLevel(value);
+    session.setSDKOptions(options);
   }
 }

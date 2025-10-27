@@ -1,4 +1,4 @@
-import type { PermissionMode, SDKMessage } from "@anthropic-ai/claude-agent-sdk";
+import type { SDKMessage, Options as SDKOptions } from "@anthropic-ai/claude-agent-sdk";
 import type { IClaudeAgentSDKClient } from "./client";
 import type { AttachmentPayload } from "./messages";
 
@@ -46,11 +46,14 @@ export interface MessagesUpdatedOutcomingMessage extends BaseOutcomingMessage {
   messages: SDKMessage[];
 }
 
+export type SessionSDKOptions = SDKOptions & {
+  thinkingLevel?: ThinkingLevel;
+};
+
 export type SessionStateSnapshot = {
   isBusy: boolean;
   isLoading: boolean;
-  permissionMode: PermissionMode;
-  thinkingLevel: ThinkingLevel;
+  options: SessionSDKOptions;
 };
 
 export type SessionStateUpdate = Partial<SessionStateSnapshot>;
@@ -67,7 +70,7 @@ export type OutcomingMessage =
 
 
 interface BaseIncomingMessage {
-  type: "chat" | "setPermissionMode" | "setThinkingLevel" | "resume";
+  type: "chat" | "setSDKOptions" | "resume";
   sessionId?: string | null;
 }
 
@@ -78,14 +81,9 @@ export interface ChatIncomingMessage extends BaseIncomingMessage {
   newConversation?: boolean;
 }
 
-export interface SetPermissionModeIncomingMessage extends BaseIncomingMessage {
-  type: "setPermissionMode";
-  mode: PermissionMode;
-}
-
-export interface SetThinkingLevelIncomingMessage extends BaseIncomingMessage {
-  type: "setThinkingLevel";
-  value: ThinkingLevel;
+export interface SetSDKOptionsIncomingMessage extends BaseIncomingMessage {
+  type: "setSDKOptions";
+  options: Partial<SessionSDKOptions>
 }
 
 export interface ResumeSessionIncomingMessage extends BaseIncomingMessage {
@@ -95,6 +93,5 @@ export interface ResumeSessionIncomingMessage extends BaseIncomingMessage {
 
 export type IncomingMessage =
   | ChatIncomingMessage
-  | SetPermissionModeIncomingMessage
-  | SetThinkingLevelIncomingMessage
+  | SetSDKOptionsIncomingMessage
   | ResumeSessionIncomingMessage;

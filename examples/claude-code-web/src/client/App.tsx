@@ -123,7 +123,9 @@ function App() {
   const { messages, sessionId, sessionInfo } = useChatSessionState()
   const setMessages = useSetAtom(chatMessagesAtom)
   const setSessionInfo = useSetAtom(chatSessionInfoAtom)
-  const { isBusy, isLoading, permissionMode, thinkingLevel } = sessionInfo
+  const { isBusy, isLoading, options } = sessionInfo
+  const permissionMode = options.permissionMode ?? 'default'
+  const thinkingLevel = options.thinkingLevel ?? 'off'
   const selectChatSession = useSelectChatSession()
   const handleOutcomingMessage = useOutcomingMessageHandler()
   const [connectionMessage, setConnectionMessage] = useState<string | null>(
@@ -184,7 +186,10 @@ function App() {
     (mode: PermissionMode) => {
       setSessionInfo((previous) => ({
         ...previous,
-        permissionMode: mode,
+        options: {
+          ...previous.options,
+          permissionMode: mode,
+        },
       }))
     },
     [setSessionInfo],
@@ -194,7 +199,10 @@ function App() {
     (level: ThinkingLevel) => {
       setSessionInfo((previous) => ({
         ...previous,
-        thinkingLevel: level,
+        options: {
+          ...previous.options,
+          thinkingLevel: level,
+        },
       }))
     },
     [setSessionInfo],

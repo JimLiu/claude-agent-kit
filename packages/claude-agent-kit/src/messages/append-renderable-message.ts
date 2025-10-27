@@ -46,7 +46,8 @@ export function appendRenderableMessage(
   }
 
   const rendered = createChatMessageFromSDKMessage(incoming);
-  if (rendered) {
+  // If the incoming message didn't update any tool results, add it as a new message
+  if (rendered && updatedMessages.length === 0) {
     messages.push(rendered);
     return {
       addedMessage: rendered,

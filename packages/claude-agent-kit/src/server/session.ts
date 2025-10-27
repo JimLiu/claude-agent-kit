@@ -17,12 +17,13 @@ import type {
   SessionStateUpdate,
   SessionStateSnapshot
 } from "../types";
+import type { SDKSystemMessage } from "@anthropic-ai/claude-agent-sdk";
 
 
 export class Session {
   sessionId: string | null = null; // Claude session ID
   permissionMode: PermissionMode = "default";
-  workspacePath: string | null = null;
+  workspacePath: string | undefined = undefined;
   usageSummary: UsageSummary | undefined;
   claudeConfig: ClaudeConfig | undefined;
   modelSelection: string | undefined;
@@ -88,8 +89,18 @@ export class Session {
     return this.messageList;
   }
 
+  findWorkspacePathFromMessages(messages: SDKMessage[]): string | undefined {
+    const cwdMessage = messages.find(msg => (msg as SDKSystemMessage).cwd) as SDKSystemMessage | undefined;
+    return cwdMessage?.cwd || undefined;
+  }
+
   private setMessages(messages: SDKMessage[]): void {
     this.messageList = messages;
+
+    if (!this.workspacePath) {
+      this.workspacePath = this.findWorkspacePathFromMessages(messages);
+    }
+
     console.log(
       `[Session] setMessages for ${this.sessionId ?? "pending"} count=${messages.length} (wasLoaded=${this.isLoaded})`,
     );
@@ -289,7 +300,7 @@ export class Session {
           generateMessages(),
           options
         )) {
-          //console.log(message);
+          console.log(message);
           this.processIncomingMessage(message);
         }
       } catch (error) {

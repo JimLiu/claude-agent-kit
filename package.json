@@ -1,7 +1,7 @@
 {
   "name": "claude-agent-kit-workspace",
   "private": true,
-  "packageManager": "pnpm@10.11.1",
+  "packageManager": "pnpm@10.19.0",
   "workspaces": [
     "packages/*",
     "examples/*"

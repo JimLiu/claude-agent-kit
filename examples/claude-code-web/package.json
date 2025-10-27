@@ -24,6 +24,7 @@
     "cmdk": "^1.1.1",
     "compression": "^1.8.1",
     "express": "^5.1.0",
+    "jotai": "^2.15.0",
     "lucide-react": "^0.546.0",
     "monaco-editor": "^0.52.2",
     "nanoid": "^5.1.6",

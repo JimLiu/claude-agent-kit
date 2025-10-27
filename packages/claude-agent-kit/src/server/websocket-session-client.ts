@@ -15,6 +15,11 @@ export class WebSocketSessionClient implements ISessionClient {
 
   receiveSessionMessage(_event: string, message: OutcomingMessage): void {
     try {
+      if (process.env.DEBUG?.includes("session-client")) {
+        console.log(
+          `[WebSocketSessionClient] sending ${message.type} for session ${message.sessionId ?? "unknown"}`,
+        );
+      }
       this.webSocket.send(JSON.stringify(message));
     } catch (error) {
       console.error("Failed to send WebSocket message:", error);

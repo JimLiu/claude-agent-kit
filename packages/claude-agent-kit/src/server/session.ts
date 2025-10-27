@@ -13,7 +13,9 @@ import type {
   UsageSummary,
   IClaudeAgentSDKClient,
   ISessionClient,
-  OutcomingMessage
+  OutcomingMessage,
+  SessionStateUpdate,
+  SessionStateSnapshot
 } from "../types";
 
 
@@ -53,11 +55,7 @@ export class Session {
       return;
     }
     this.busyState = state;
-    this.notifyClients("busyStateChanged", {
-      type: "busy_state_changed",
-      sessionId: this.sessionId,
-      isBusy: state,
-    });
+    this.emitSessionStateChange({ isBusy: state });
   }
 
   get isLoading(): boolean {
@@ -69,15 +67,12 @@ export class Session {
       return;
     }
     this.loadingState = state;
-    this.notifyClients("loadingStateChanged", {
-      type: "loading_state_changed",
-      sessionId: this.sessionId,
-      isLoading: state,
-    });
+    this.emitSessionStateChange({ isLoading: state });
   }
 
   setPermissionMode(mode: PermissionMode, persist?: boolean): void {
     this.permissionMode = mode;
+    this.emitSessionStateChange({ permissionMode: mode });
 
     if (persist) {
       // Implementation for persisting the permission mode
@@ -86,6 +81,7 @@ export class Session {
 
   setThinkingLevel(value: ThinkingLevel): void {
     this.thinkingLevel = value;
+    this.emitSessionStateChange({ thinkingLevel: value });
   }
 
   get messages(): SDKMessage[] {
@@ -94,6 +90,9 @@ export class Session {
 
   private setMessages(messages: SDKMessage[]): void {
     this.messageList = messages;
+    console.log(
+      `[Session] setMessages for ${this.sessionId ?? "pending"} count=${messages.length} (wasLoaded=${this.isLoaded})`,
+    );
     this.notifyClients("messagesUpdated", {
       type: "messages_updated",
       sessionId: this.sessionId,
@@ -130,6 +129,25 @@ export class Session {
     }
     this.clients.add(client);
     client.sessionId = this.sessionId ?? undefined;
+    const sessionState = this.getSessionStateSnapshot();
+    console.log(
+      `[Session] Client subscribed to ${this.sessionId ?? "uninitialized"} (messages=${this.messageList.length}, loaded=${this.isLoaded})`,
+    );
+    client.receiveSessionMessage(
+      "sessionStateChanged",
+      this.createSessionStateMessage(sessionState),
+    );
+
+    // When a client attaches to an already loaded session, immediately send the
+    // current transcript so switching sessions always repopulates the UI.
+    if (this.isLoaded) {
+      client.receiveSessionMessage("messagesUpdated", {
+        type: "messages_updated",
+        sessionId: this.sessionId,
+        messages: [...this.messageList],
+      });
+      console.log(`[Session] Sent cached transcript to client for ${this.sessionId}: ${this.messageList.length} messages`);
+    }
   }
 
   unsubscribe(client: ISessionClient) {
@@ -171,6 +189,7 @@ export class Session {
     this.loadingPromise = (async () => {
       try {
         const { messages } = await this.sdkClient.loadMessages(targetSessionId);
+        console.log(`[Session] loadFromServer(${targetSessionId}) returned ${messages.length} messages`);
         if (messages.length === 0) {
           this.setMessages([]);
           this.summary = undefined;
@@ -189,6 +208,7 @@ export class Session {
       } finally {
         this.setLoadingState(false);
         this.loadingPromise = null;
+        console.log(`[Session] Finished loading ${targetSessionId}`);
       }
     })();
 
@@ -200,11 +220,17 @@ export class Session {
       return;
     }
 
+    console.log(
+      `[Session] resumeFrom ${sessionId} (current=${this.sessionId ?? "none"}, loaded=${this.isLoaded})`,
+    );
+
     if (this.sessionId === sessionId && this.isLoaded) {
+      console.log(`[Session] resumeFrom short-circuited for ${sessionId} (already loaded)`);
       return;
     }
 
     await this.loadFromServer(sessionId);
+    console.log(`[Session] resumeFrom finished loading ${sessionId}`);
   }
 
   // Process a single user message
@@ -302,8 +328,30 @@ export class Session {
       this.setBusyState(false);
     }
   }
-}
+  private getSessionStateSnapshot(): SessionStateSnapshot {
+    return {
+      isBusy: this.busyState,
+      isLoading: this.loadingState,
+      permissionMode: this.permissionMode,
+      thinkingLevel: this.thinkingLevel,
+    };
+  }
 
+  private createSessionStateMessage(update: SessionStateUpdate): OutcomingMessage {
+    return {
+      type: "session_state_changed",
+      sessionId: this.sessionId,
+      sessionState: update,
+    };
+  }
+
+  private emitSessionStateChange(update: SessionStateUpdate): void {
+    if (!update || Object.keys(update).length === 0) {
+      return;
+    }
+    this.notifyClients("sessionStateChanged", this.createSessionStateMessage(update));
+  }
+}
 
 function extractTimestamp(value: unknown): number | null {
   if (typeof value === "number" && Number.isFinite(value)) {

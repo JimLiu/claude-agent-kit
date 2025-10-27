@@ -23,8 +23,7 @@ Source: `src/session.ts:1`
 - Manages subscribers: a set of `ISessionClient` implementations, notified via `receiveSessionMessage(event, payload)` on updates:
   - `message_added`
   - `messages_updated`
-  - `busy_state_changed`
-  - `loading_state_changed`
+  - `session_state_changed`
 - Updates its `sessionId` when the SDK returns a message containing `session_id`, then syncs that id to all subscribers.
 
 ### SessionClient (ISessionClient)
@@ -209,8 +208,7 @@ stateDiagram-v2
 - Outgoing session events to clients include:
   - `message_added`: single `SDKMessage`
   - `messages_updated`: full array of `SDKMessage`
-  - `busy_state_changed`: boolean
-  - `loading_state_changed`: boolean
+  - `session_state_changed`: partial session info (`isBusy`, `isLoading`, `permissionMode`, `thinkingLevel`)
 
 ## Error Handling
 
@@ -222,4 +220,3 @@ stateDiagram-v2
 - Plug a different `IClaudeAgentSDKClient` to customize tools, models, hooks, or persistence.
 - Add protocol messages (e.g., `resume`, `interrupt`) and route them through `SessionManager` to `Session`.
 - Add more renderable content types to `buildUserMessageContent` if needed.
-

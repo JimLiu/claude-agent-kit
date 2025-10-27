@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import type { WebSocket } from "ws";
-import { WebSocketSessionClient } from "../src/websocket-session-client";
+import { WebSocketSessionClient } from "../src/server/websocket-session-client";
 import type { IClaudeAgentSDKClient, OutcomingMessage } from "../src/types";
 
 function createMockSdkClient(): IClaudeAgentSDKClient {
@@ -25,9 +25,9 @@ describe("WebSocketSessionClient", () => {
     const ws = createMockWebSocket();
     const client = new WebSocketSessionClient(createMockSdkClient(), ws);
     const message: OutcomingMessage = {
-      type: "busy_state_changed",
+      type: "session_state_changed",
       sessionId: "abc",
-      isBusy: true,
+      sessionState: { isBusy: true },
     };
 
     client.receiveSessionMessage("event", message);
@@ -43,9 +43,9 @@ describe("WebSocketSessionClient", () => {
     const consoleSpy = vi.spyOn(console, "error").mockImplementation(() => undefined);
     const client = new WebSocketSessionClient(createMockSdkClient(), ws);
     const message: OutcomingMessage = {
-      type: "loading_state_changed",
+      type: "session_state_changed",
       sessionId: null,
-      isLoading: true,
+      sessionState: { isLoading: true },
     };
 
     client.receiveSessionMessage("event", message);

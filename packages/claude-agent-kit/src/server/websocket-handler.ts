@@ -4,6 +4,7 @@ import type {
   ChatIncomingMessage,
   IClaudeAgentSDKClient,
   IncomingMessage,
+  ResumeSessionIncomingMessage,
   SetPermissionModeIncomingMessage,
   SetThinkingLevelIncomingMessage,
 } from "../types";
@@ -67,6 +68,9 @@ export class WebSocketHandler {
         break;
       case "setThinkingLevel":
         this.handleSetThinkingLevel(ws, message);
+        break;
+      case "resume":
+        await this.handleResumeMessage(ws, message);
         break;
       default:
         this.send(ws, {
@@ -132,4 +136,49 @@ export class WebSocketHandler {
     this.sessionManager.sendMessage(client, content, message.attachments);
   }
 
+  private async handleResumeMessage(ws: WebSocket, message: ResumeSessionIncomingMessage): Promise<void> {
+    const client = this.clients.get(ws);
+    if (!client) {
+      console.error("WebSocket client not registered");
+      this.send(ws, { type: "error", error: "WebSocket client not registered" });
+      return;
+    }
+
+    const targetSessionId = message.sessionId?.trim();
+    console.log(`[WebSocketHandler] Client ${client.sessionId ?? "unknown"} requested resume to ${targetSessionId}`, message);
+    if (!targetSessionId) {
+      this.send(ws, {
+        type: "error",
+        error: "Session ID is required to resume",
+        code: "invalid_session_id",
+      });
+      return;
+    }
+
+    const previousSessionId = client.sessionId;
+    if (previousSessionId && previousSessionId !== targetSessionId) {
+      const previousSession = this.sessionManager.getSession(previousSessionId);
+      previousSession?.unsubscribe(client);
+      console.log(`[WebSocketHandler] Unsubscribed client from previous session ${previousSessionId}`);
+    }
+
+    client.sessionId = targetSessionId;
+
+    const session = this.sessionManager.getOrCreateSession(client);
+    session.subscribe(client);
+    client.sessionId = targetSessionId;
+    console.log(`[WebSocketHandler] Client subscribed to ${targetSessionId}, session has ${session.messages.length} messages loaded`);
+
+    try {
+      await session.resumeFrom(targetSessionId);
+      console.log(`[WebSocketHandler] Resume completed for ${targetSessionId}`);
+    } catch (error) {
+      console.error(`Failed to resume session '${targetSessionId}':`, error);
+      this.send(ws, {
+        type: "error",
+        error: "Failed to resume session",
+        code: "resume_failed",
+      });
+    }
+  }
 }

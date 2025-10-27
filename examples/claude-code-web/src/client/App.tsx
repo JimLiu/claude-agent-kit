@@ -1,4 +1,5 @@
 import { useCallback, useMemo, useState } from 'react'
+import { useSetAtom } from 'jotai'
 
 import { ChatHeader } from '@/components/chat/chat-header'
 import {
@@ -9,6 +10,7 @@ import {
 import type { FileSuggestion } from '@/components/prompt-input/mention-file-list'
 import { MessagesPane } from '@/components/chat/messages-pane'
 import { LeftSidebar } from '@/components/left-sidebar/left-sidebar'
+import type { SessionSelectPayload } from '@/components/left-sidebar/types'
 import {
   ResizableHandle,
   ResizablePanel,
@@ -25,58 +27,22 @@ import type {
   UserMessage,
 } from '@/types/session'
 
-import type { AttachmentPayload, ToolResultContentBlock, ChatMessage } from 'claude-agent-kit/types'
+import type { AttachmentPayload, OutcomingMessage } from 'claude-agent-kit/types'
+import { createSystemMessage } from '@/lib/chat-message-utils'
 import {
-  SerializedChatMessage,
-  createSystemMessage,
-  hydrateChatMessage,
-  sortMessages,
-  updateToolResult,
-} from '@/lib/chat-message-utils'
-
-type SessionBroadcast =
-  | {
-      type: 'session_info'
-      sessionId: string
-      messageCount: number
-      isActive: boolean
-    }
-  | {
-      type: 'messages_loaded'
-      sessionId: string
-      messages: SerializedChatMessage[]
-    }
-  | {
-      type: 'message_added'
-      sessionId: string
-      message: SerializedChatMessage
-    }
-  | {
-      type: 'message_updated'
-      sessionId: string
-      message: SerializedChatMessage
-    }
-  | {
-      type: 'message_removed'
-      sessionId: string
-      messageId: string
-    }
-  | {
-      type: 'tool_result_updated'
-      sessionId: string
-      messageId: string
-      toolUseId: string
-      result: ToolResultContentBlock
-    }
+  chatMessagesAtom,
+  chatSessionInfoAtom,
+} from '@/state/chat-atoms'
+import {
+  useChatSessionState,
+  useOutcomingMessageHandler,
+  useSelectChatSession,
+} from '@/state/use-chat-session'
 
 type ServerMessage =
   | { type: 'connected'; message?: string }
   | { type: 'error'; error?: string; code?: string }
-  | {
-      type: 'session_message'
-      sessionId: string
-      message: SessionBroadcast
-    }
+  | OutcomingMessage
   | Record<string, unknown>
 
 type CommandAction = {
@@ -134,17 +100,35 @@ async function buildAttachmentPayloads(
   return payloads
 }
 
+function isOutcomingServerMessage(
+  payload: ServerMessage,
+): payload is OutcomingMessage {
+  if (!payload || typeof payload !== 'object') {
+    return false
+  }
+
+  const type = (payload as { type?: unknown }).type
+  if (typeof type !== 'string') {
+    return false
+  }
+
+  return (
+    type === 'message_added' ||
+    type === 'messages_updated' ||
+    type === 'session_state_changed'
+  )
+}
+
 function App() {
-  const [messages, setMessages] = useState<ChatMessage[]>([])
-  const [sessionId, setSessionId] = useState<string | null>(null)
-  const [isStreaming, setIsStreaming] = useState(false)
+  const { messages, sessionId, sessionInfo } = useChatSessionState()
+  const setMessages = useSetAtom(chatMessagesAtom)
+  const setSessionInfo = useSetAtom(chatSessionInfoAtom)
+  const { isBusy, isLoading, permissionMode, thinkingLevel } = sessionInfo
+  const selectChatSession = useSelectChatSession()
+  const handleOutcomingMessage = useOutcomingMessageHandler()
   const [connectionMessage, setConnectionMessage] = useState<string | null>(
     null,
   )
-  const [permissionMode, setPermissionModeState] =
-    useState<PermissionMode>('default')
-  const [thinkingLevel, setThinkingLevel] =
-    useState<ThinkingLevel>('off')
   const [modelSelection, setModelSelection] = useState<string | null>(null)
   const [attachedFiles, setAttachedFiles] = useState<AttachedFile[]>([])
   const [commandEntries, setCommandEntries] = useState<Map<string, CommandEntry>>(
@@ -198,14 +182,31 @@ function App() {
 
   const handleSetPermissionMode = useCallback(
     (mode: PermissionMode) => {
-      setPermissionModeState(mode)
+      setSessionInfo((previous) => ({
+        ...previous,
+        permissionMode: mode,
+      }))
     },
-    [],
+    [setSessionInfo],
+  )
+
+  const handleSetThinkingLevel = useCallback(
+    (level: ThinkingLevel) => {
+      setSessionInfo((previous) => ({
+        ...previous,
+        thinkingLevel: level,
+      }))
+    },
+    [setSessionInfo],
   )
 
   const handleInterrupt = useCallback(() => {
-    setIsStreaming(false)
-  }, [])
+    setSessionInfo((previous) => ({
+      ...previous,
+      isBusy: false,
+      isLoading: false,
+    }))
+  }, [setSessionInfo])
 
   const handleModelSelected = useCallback((model: ClaudeModelOption) => {
     setModelSelection(model.value)
@@ -231,6 +232,16 @@ function App() {
       return []
     },
     [],
+  )
+
+  const handleSessionSelect = useCallback(
+    ({ sessionId: nextSessionId, projectId }: SessionSelectPayload) => {
+      if (nextSessionId === sessionId) {
+        return
+      }
+      selectChatSession({ sessionId: nextSessionId, projectId })
+    },
+    [selectChatSession, sessionId],
   )
 
   const supportsSpeechRecognition = useMemo(() => {
@@ -302,79 +313,6 @@ function App() {
     return `${protocol}://${host}/ws`
   }, [])
 
-  const handleSessionMessage = useCallback(
-    (incomingSessionId: string, payload: SessionBroadcast) => {
-      setSessionId(incomingSessionId)
-
-      if (payload.type === 'session_info') {
-        setIsStreaming(payload.isActive)
-        return
-      }
-
-      if (payload.type === 'messages_loaded') {
-        const hydrated = payload.messages
-          .map((message) => hydrateChatMessage(message))
-          .filter((message) => !message.isEmpty)
-
-        setMessages(sortMessages(hydrated))
-        setIsStreaming(false)
-        return
-      }
-
-      if (payload.type === 'message_added') {
-        const nextMessage = hydrateChatMessage(payload.message)
-        if (nextMessage.isEmpty) {
-          return
-        }
-
-        setMessages((previous) => {
-          const exists = previous.some(
-            (message) => message.id === nextMessage.id,
-          )
-          if (exists) {
-            return sortMessages(
-              previous.map((message) =>
-                message.id === nextMessage.id ? nextMessage : message,
-              ),
-            )
-          }
-
-          return sortMessages([...previous, nextMessage])
-        })
-        return
-      }
-
-      if (payload.type === 'message_updated') {
-        const updatedMessage = hydrateChatMessage(payload.message)
-        setMessages((previous) =>
-          previous.map((message) =>
-            message.id === updatedMessage.id ? updatedMessage : message,
-          ),
-        )
-        return
-      }
-
-      if (payload.type === 'message_removed') {
-        setMessages((previous) =>
-          previous.filter((message) => message.id !== payload.messageId),
-        )
-        return
-      }
-
-      if (payload.type === 'tool_result_updated') {
-        setMessages((previous) =>
-          previous.map((message) => {
-            if (message.id !== payload.messageId) {
-              return message
-            }
-            return updateToolResult(message, payload.toolUseId, payload.result)
-          }),
-        )
-      }
-    },
-    [],
-  )
-
   const handleServerMessage = useCallback(
     (raw: ServerMessage) => {
       if (raw.type === 'connected') {
@@ -392,21 +330,27 @@ function App() {
           ...previous,
           createSystemMessage(`Error: ${errorMessage}`),
         ])
-        setIsStreaming(false)
+        setSessionInfo((previous) => ({
+          ...previous,
+          isBusy: false,
+          isLoading: false,
+        }))
         return
       }
 
-      if (raw.type === 'session_message' && raw.message) {
-        handleSessionMessage(raw.sessionId, raw.message)
+      if (isOutcomingServerMessage(raw)) {
+        handleOutcomingMessage(raw)
       }
     },
-    [handleSessionMessage],
+    [handleOutcomingMessage, setMessages, setSessionInfo],
   )
 
   const { isConnected, sendMessage } = useWebSocket({
     url: websocketUrl,
     onMessage: handleServerMessage,
   })
+
+  const isStreaming = isBusy || isLoading
 
   const session = useMemo<Session>(
     () => ({
@@ -422,7 +366,7 @@ function App() {
         value: modelSelection ? { modelSetting: modelSelection } : null,
       },
       thinkingLevel: { value: thinkingLevel },
-      setThinkingLevel,
+      setThinkingLevel: handleSetThinkingLevel,
       interrupt: handleInterrupt,
     }),
     [
@@ -433,7 +377,7 @@ function App() {
       modelSelection,
       permissionMode,
       sessionMessages,
-      setThinkingLevel,
+      handleSetThinkingLevel,
       thinkingLevel,
       usageData,
     ],
@@ -460,10 +404,13 @@ function App() {
         sessionId,
         attachments: attachmentPayloads,
       })
-      setIsStreaming(true)
+      setSessionInfo((previous) => ({
+        ...previous,
+        isBusy: true,
+      }))
       setAttachedFiles([])
     },
-    [isConnected, sendMessage, sessionId, setAttachedFiles],
+    [isConnected, sendMessage, sessionId, setAttachedFiles, setSessionInfo],
   )
 
   return (
@@ -485,7 +432,10 @@ function App() {
             maxSize={32}
             className="max-w-[360px] min-w-[260px]"
           >
-            <LeftSidebar selectedSessionId={sessionId} />
+            <LeftSidebar
+              selectedSessionId={sessionId}
+              onSessionSelect={handleSessionSelect}
+            />
           </ResizablePanel>
           <ResizableHandle />
           <ResizablePanel className="flex h-full flex-col">

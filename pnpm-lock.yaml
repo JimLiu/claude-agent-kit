@@ -268,6 +268,9 @@ importers:
       express:
         specifier: ^5.1.0
         version: 5.1.0
+      jotai:
+        specifier: ^2.15.0
+        version: 2.15.0(@babel/core@7.28.5)(@babel/template@7.27.2)(@types/react@19.2.2)(react@19.2.0)
       lucide-react:
         specifier: ^0.546.0
         version: 0.546.0(react@19.2.0)
@@ -8403,6 +8406,13 @@ snapshots:
       '@babel/template': 7.27.2
       '@types/react': 19.2.2
       react: 18.3.1
+
+  jotai@2.15.0(@babel/core@7.28.5)(@babel/template@7.27.2)(@types/react@19.2.2)(react@19.2.0):
+    optionalDependencies:
+      '@babel/core': 7.28.5
+      '@babel/template': 7.27.2
+      '@types/react': 19.2.2
+      react: 19.2.0
 
   js-tokens@4.0.0: {}
 

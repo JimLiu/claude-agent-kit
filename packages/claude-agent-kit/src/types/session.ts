@@ -28,8 +28,7 @@ export interface ISessionClient {
 export type OutcomingMessageType =
   | "message_added"
   | "messages_updated"
-  | "loading_state_changed"
-  | "busy_state_changed";
+  | "session_state_changed";
 
 export interface BaseOutcomingMessage {
   type: OutcomingMessageType;
@@ -47,25 +46,28 @@ export interface MessagesUpdatedOutcomingMessage extends BaseOutcomingMessage {
   messages: SDKMessage[];
 }
 
-export interface LoadingStateChangedOutcomingMessage extends BaseOutcomingMessage {
-  type: "loading_state_changed";
-  isLoading: boolean;
-}
-
-export interface BusyStateChangedOutcomingMessage extends BaseOutcomingMessage {
-  type: "busy_state_changed";
+export type SessionStateSnapshot = {
   isBusy: boolean;
+  isLoading: boolean;
+  permissionMode: PermissionMode;
+  thinkingLevel: ThinkingLevel;
+};
+
+export type SessionStateUpdate = Partial<SessionStateSnapshot>;
+
+export interface SessionStateChangedOutcomingMessage extends BaseOutcomingMessage {
+  type: "session_state_changed";
+  sessionState: SessionStateUpdate;
 }
 
 export type OutcomingMessage =
   | MessageAddedOutcomingMessage
   | MessagesUpdatedOutcomingMessage
-  | LoadingStateChangedOutcomingMessage
-  | BusyStateChangedOutcomingMessage;
+  | SessionStateChangedOutcomingMessage;
 
 
 interface BaseIncomingMessage {
-  type: "chat" | "setPermissionMode" | "setThinkingLevel";
+  type: "chat" | "setPermissionMode" | "setThinkingLevel" | "resume";
   sessionId?: string | null;
 }
 
@@ -86,7 +88,13 @@ export interface SetThinkingLevelIncomingMessage extends BaseIncomingMessage {
   value: ThinkingLevel;
 }
 
+export interface ResumeSessionIncomingMessage extends BaseIncomingMessage {
+  type: "resume";
+  sessionId: string;
+}
+
 export type IncomingMessage =
   | ChatIncomingMessage
   | SetPermissionModeIncomingMessage
-  | SetThinkingLevelIncomingMessage;
+  | SetThinkingLevelIncomingMessage
+  | ResumeSessionIncomingMessage;

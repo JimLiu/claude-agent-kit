@@ -121,8 +121,7 @@ Possible `code` values today:
 All session events include the current `sessionId` (or `null` before assignment):
 
 ```json
-{ "type": "busy_state_changed", "sessionId": null, "isBusy": true }
-{ "type": "loading_state_changed", "sessionId": "abc123", "isLoading": false }
+{ "type": "session_state_changed", "sessionId": null, "sessionState": { "isBusy": true, "permissionMode": "default" } }
 { "type": "message_added", "sessionId": "abc123", "message": { "type": "assistant", "message": { "content": [ { "type": "text", "text": "…" } ] } } }
 { "type": "messages_updated", "sessionId": "abc123", "messages": [ /* SDKMessage[] */ ] }
 ```
@@ -130,6 +129,7 @@ All session events include the current `sessionId` (or `null` before assignment)
 Notes
 
 - `message_added` is emitted for every streamed `SDKMessage` (assistant, system, result, stream_event) passed through from the SDK.
+- `session_state_changed` batches updates for `isBusy`, `isLoading`, `permissionMode`, and `thinkingLevel`; clients can merge these partial updates into their local session state.
 - Clients should treat the stream as append‑only and render incrementally.
 
 ## Typical Client Usage
@@ -147,17 +147,14 @@ ws.addEventListener("message", (ev) => {
     case "connected":
       console.log("connected");
       break;
-    case "busy_state_changed":
-      // show typing indicator
-      break;
     case "message_added":
       // append msg.message to transcript
       break;
     case "messages_updated":
       // replace transcript with msg.messages
       break;
-    case "loading_state_changed":
-      // show/hide loading UI
+    case "session_state_changed":
+      // update session UI (isBusy, isLoading, permissionMode, thinkingLevel, etc.)
       break;
     case "error":
       console.error(msg.error);
@@ -176,4 +173,3 @@ ws.addEventListener("message", (ev) => {
 
 - Prefer WSS in production and validate message sizes (especially attachments).
 - Apply authentication/authorization at the WebSocket handshake and map principals to Sessions as appropriate for your app.
-

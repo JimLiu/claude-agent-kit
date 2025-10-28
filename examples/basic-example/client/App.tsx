@@ -1,67 +1,73 @@
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import { ChatInterface } from "./components/chat-interface";
-import { useWebSocket } from "./hooks/useWebSocket";
+import type { Message } from "./components/message/types";
 import { ScreenshotModeProvider } from "./context/screenshot-mode-context";
+import { useWebSocket } from "./hooks/useWebSocket";
+import { convertSDKMessage, convertSDKMessages } from "./utils/message-adapter";
 
 const App: React.FC = () => {
-  const [messages, setMessages] = useState([]);
+  const [messages, setMessages] = useState<Message[]>([]);
   const [sessionId, setSessionId] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
 
   // Single WebSocket connection for all components
   const { isConnected, sendMessage } = useWebSocket({
-    url: 'ws://localhost:3000/ws',
+    url: "ws://localhost:3000/ws",
     onMessage: (message) => {
       switch (message.type) {
-        case 'connected':
-          console.log('Connected to server:', message.message);
+        case "connected":
+          console.log("Connected to server:", message.message);
           break;
-        case 'session':
-        case 'session_info':
-          setSessionId(message.sessionId);
-          break;
-        case 'assistant_message':
-          const assistantMsg = {
-            id: Date.now().toString() + '-assistant',
-            type: 'assistant',
-            content: [{ type: 'text', text: message.content }],
-            timestamp: new Date().toISOString(),
-          };
-          setMessages(prev => [...prev, assistantMsg]);
-          setIsLoading(false);
-          break;
-        case 'tool_use':
-          const toolMsg = {
-            id: Date.now().toString() + '-tool',
-            type: 'assistant',
-            content: [{
-              type: 'tool_use',
-              id: message.toolId || Date.now().toString(),
-              name: message.toolName,
-              input: message.toolInput || {}
-            }],
-            timestamp: new Date().toISOString(),
-          };
-          setMessages(prev => [...prev, toolMsg]);
-          break;
-        case 'result':
-          if (message.success) {
-            console.log('Query completed successfully', message);
-          } else {
-            console.error('Query failed:', message.error);
+        case "message_added": {
+          if (typeof message.sessionId === "string") {
+            setSessionId(message.sessionId);
           }
+          const uiMessage = convertSDKMessage(message.message);
+          if (uiMessage) {
+            setMessages((prev) => {
+              if (prev.some((existing) => existing.id === uiMessage.id)) {
+                return prev;
+              }
+              return [...prev, uiMessage];
+            });
+            if (uiMessage.type !== "user") {
+              setIsLoading(false);
+            }
+          }
+          break;
+        }
+        case "messages_updated": {
+          if (typeof message.sessionId === "string") {
+            setSessionId(message.sessionId);
+          }
+          const uiMessages = convertSDKMessages(message.messages ?? []);
+          setMessages(uiMessages);
           setIsLoading(false);
           break;
-        case 'error':
-          console.error('Server error:', message.error);
-          const errorMessage = {
-            id: Date.now().toString(),
-            type: 'assistant',
-            content: [{ type: 'text', text: `Error: ${message.error}` }],
+        }
+        case "session_state_changed": {
+          if (typeof message.sessionId === "string") {
+            setSessionId(message.sessionId);
+          }
+          const sessionState = message.sessionState;
+          if (sessionState && typeof sessionState.isBusy === "boolean") {
+            setIsLoading(sessionState.isBusy);
+          }
+          break;
+        }
+        case "error": {
+          console.error("Server error:", message.error);
+          const errorMessage: Message = {
+            id: `error-${Date.now()}`,
+            type: "system",
+            content: `Error: ${message.error}`,
             timestamp: new Date().toISOString(),
           };
-          setMessages(prev => [...prev, errorMessage]);
+          setMessages((prev) => [...prev, errorMessage]);
           setIsLoading(false);
+          break;
+        }
+        default:
           break;
       }
     },
@@ -75,7 +81,6 @@ const App: React.FC = () => {
             isConnected={isConnected}
             sendMessage={sendMessage}
             messages={messages}
-            setMessages={setMessages}
             sessionId={sessionId}
             isLoading={isLoading}
             setIsLoading={setIsLoading}

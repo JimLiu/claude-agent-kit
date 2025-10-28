@@ -1,0 +1,45 @@
+{
+  "name": "@claude-agent-kit/websocket",
+  "version": "0.1.0",
+  "description": "WebSocket server utilities for streaming Claude agent sessions.",
+  "type": "module",
+  "main": "dist/index.js",
+  "module": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "exports": {
+    ".": {
+      "import": "./dist/index.js",
+      "types": "./dist/index.d.ts"
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "clean": "rm -rf dist",
+    "lint": "echo \"Add your preferred linter and update scripts\" && exit 0",
+    "prepare": "pnpm run build",
+    "test": "vitest run --passWithNoTests",
+    "test:watch": "vitest"
+  },
+  "keywords": [
+    "anthropic",
+    "claude",
+    "agent",
+    "websocket"
+  ],
+  "engines": {
+    "node": ">=18"
+  },
+  "dependencies": {
+    "@claude-agent-kit/server": "workspace:*",
+    "ws": "^8.17.0"
+  },
+  "devDependencies": {
+    "@types/node": "^24.8.1",
+    "@types/ws": "^8.18.1",
+    "typescript": "^5.4.5",
+    "vitest": "^4.0.3"
+  }
+}

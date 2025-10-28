@@ -1,53 +1,27 @@
 {
-  "name": "claude-agent-kit",
-  "version": "0.0.2",
-  "description": "Utilities for @anthropic-ai/claude-agent-sdk: message parsing, session management, UI scaffolding, and runnable examples.",
-  "type": "module",
-  "main": "dist/index.js",
-  "module": "dist/index.js",
-  "types": "dist/index.d.ts",
-  "exports": {
-    ".": {
-      "import": "./dist/index.js",
-      "types": "./dist/index.d.ts"
-    }
-  },
-  "files": [
-    "dist",
-    "src",
-    "README.md",
-    "LICENSE"
+  "name": "claude-agent-kit-workspace",
+  "private": true,
+  "packageManager": "pnpm@10.19.0",
+  "workspaces": [
+    "packages/*",
+    "examples/*"
   ],
   "scripts": {
-    "build": "tsc -p tsconfig.json",
-    "clean": "rm -rf dist",
-    "lint": "echo \"Add your preferred linter and update scripts\" && exit 0",
-    "prepare": "npm run build"
-  },
-  "keywords": [
-    "anthropic",
-    "claude",
-    "agent",
-    "sdk",
-    "session",
-    "websocket"
-  ],
-  "engines": {
-    "node": ">=18"
-  },
-  "author": "",
-  "license": "MIT",
-  "peerDependencies": {
-    "@anthropic-ai/claude-agent-sdk": ">=0.1.0"
-  },
-  "dependencies": {
-    "nanoid": "^5.0.7",
-    "ws": "^8.17.0"
+    "build": "pnpm -r --filter @claude-agent-kit/* run build",
+    "clean": "pnpm -r --filter @claude-agent-kit/* run clean",
+    "test": "pnpm -r --filter @claude-agent-kit/* run test",
+    "test:watch": "pnpm -r --filter @claude-agent-kit/* run test:watch",
+    "publish:all": "node scripts/publish-all.mjs",
+    "dev:basic-example": "pnpm --filter claude-agent-sdk-basic-example dev",
+    "dev:claude-code-v0": "pnpm --filter claude-code-v0 dev",
+    "dev:claude-code-web": "pnpm --filter claude-code-web dev",
+    "prepare": "pnpm run build"
   },
   "devDependencies": {
     "@anthropic-ai/claude-agent-sdk": "^0.1.22",
     "@types/node": "^24.8.1",
     "@types/ws": "^8.18.1",
-    "typescript": "^5.4.5"
+    "typescript": "^5.4.5",
+    "vitest": "^4.0.3"
   }
 }

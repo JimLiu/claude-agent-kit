@@ -1,5 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 
+import type { SessionSDKOptions } from '@claude-agent-kit/server';
+
 interface WebSocketMessage {
   type: string;
   [key: string]: any;
@@ -25,21 +27,89 @@ export function useWebSocket({
   maxReconnectAttempts = 5,
 }: UseWebSocketOptions) {
   const [isConnected, setIsConnected] = useState(false);
-  const [reconnectAttempts, setReconnectAttempts] = useState(0);
   const wsRef = useRef<WebSocket | null>(null);
   const reconnectTimeoutRef = useRef<NodeJS.Timeout>();
   const messageQueueRef = useRef<string[]>([]);
+  const reconnectAttemptsRef = useRef(0);
+  const shouldReconnectRef = useRef(true);
+  const handlersRef = useRef<{
+    onMessage?: UseWebSocketOptions["onMessage"];
+    onConnect?: UseWebSocketOptions["onConnect"];
+    onDisconnect?: UseWebSocketOptions["onDisconnect"];
+    onError?: UseWebSocketOptions["onError"];
+  }>({
+    onMessage,
+    onConnect,
+    onDisconnect,
+    onError,
+  });
+
+  useEffect(() => {
+    handlersRef.current = {
+      onMessage,
+      onConnect,
+      onDisconnect,
+      onError,
+    };
+  }, [onMessage, onConnect, onDisconnect, onError]);
+
+  const clearReconnectTimeout = useCallback(() => {
+    if (reconnectTimeoutRef.current) {
+      clearTimeout(reconnectTimeoutRef.current);
+      reconnectTimeoutRef.current = undefined;
+    }
+  }, []);
 
   const connect = useCallback(() => {
+    shouldReconnectRef.current = true;
+    clearReconnectTimeout();
+
+    const existingReadyState = wsRef.current?.readyState;
+    if (process.env.NODE_ENV !== 'production') {
+      console.log('[useWebSocket] connect requested', {
+        hasExistingSocket: Boolean(wsRef.current),
+        existingReadyState,
+      });
+    }
+
+    if (
+      wsRef.current &&
+      (wsRef.current.readyState === WebSocket.OPEN ||
+        wsRef.current.readyState === WebSocket.CONNECTING)
+    ) {
+      if (process.env.NODE_ENV !== 'production') {
+        console.log('[useWebSocket] existing socket still active, skipping new connection');
+      }
+      return;
+    }
+
     try {
+      if (wsRef.current) {
+        if (process.env.NODE_ENV !== 'production') {
+          console.log('[useWebSocket] closing existing socket before creating new one', {
+            previousReadyState: wsRef.current.readyState,
+          });
+        }
+        try {
+          wsRef.current.close(4000, 'Replaced connection');
+        } catch (closeError) {
+          console.warn('[useWebSocket] failed to close existing socket before reconnect', closeError);
+        }
+        wsRef.current = null;
+      }
+
       const ws = new WebSocket(url);
       wsRef.current = ws;
+      if (process.env.NODE_ENV !== 'production') {
+        console.log('[useWebSocket] created new WebSocket instance', { url });
+      }
 
       ws.onopen = () => {
         console.log('WebSocket connected');
         setIsConnected(true);
-        setReconnectAttempts(0);
-        onConnect?.();
+        reconnectAttemptsRef.current = 0;
+        clearReconnectTimeout();
+        handlersRef.current.onConnect?.();
 
         // Send any queued messages
         while (messageQueueRef.current.length > 0) {
@@ -53,36 +123,56 @@ export function useWebSocket({
       ws.onmessage = (event) => {
         try {
           const message = JSON.parse(event.data);
-          onMessage?.(message);
+          handlersRef.current.onMessage?.(message);
         } catch (error) {
           console.error('Failed to parse WebSocket message:', error);
         }
       };
 
       ws.onerror = (error) => {
-        console.error('WebSocket error:', error);
-        onError?.(error);
+        console.error('WebSocket error:', error, {
+          readyState: wsRef.current?.readyState,
+        });
+        handlersRef.current.onError?.(error);
       };
 
-      ws.onclose = () => {
-        console.log('WebSocket disconnected');
+      ws.onclose = (event) => {
+        console.log(
+          'WebSocket disconnected',
+          {
+            code: event.code,
+            reason: event.reason,
+            wasClean: event.wasClean,
+          },
+        );
         setIsConnected(false);
-        onDisconnect?.();
+        handlersRef.current.onDisconnect?.();
         wsRef.current = null;
 
-        // Attempt reconnection
-        if (reconnectAttempts < maxReconnectAttempts) {
-          console.log(`Reconnecting in ${reconnectDelay}ms... (attempt ${reconnectAttempts + 1}/${maxReconnectAttempts})`);
-          reconnectTimeoutRef.current = setTimeout(() => {
-            setReconnectAttempts(prev => prev + 1);
-            connect();
-          }, reconnectDelay);
+        if (!shouldReconnectRef.current) {
+          reconnectAttemptsRef.current = 0;
+          clearReconnectTimeout();
+          return;
         }
+
+        if (reconnectAttemptsRef.current >= maxReconnectAttempts) {
+          console.warn('Max reconnect attempts reached, giving up.');
+          return;
+        }
+
+        const nextAttempt = reconnectAttemptsRef.current + 1;
+        console.log(`Reconnecting in ${reconnectDelay}ms... (attempt ${nextAttempt}/${maxReconnectAttempts})`);
+        clearReconnectTimeout();
+        reconnectTimeoutRef.current = setTimeout(() => {
+          reconnectTimeoutRef.current = undefined;
+          reconnectAttemptsRef.current = nextAttempt;
+          connect();
+        }, reconnectDelay);
       };
     } catch (error) {
       console.error('Failed to create WebSocket connection:', error);
     }
-  }, [url, onMessage, onConnect, onDisconnect, onError, reconnectDelay, maxReconnectAttempts, reconnectAttempts]);
+  }, [url, reconnectDelay, maxReconnectAttempts, clearReconnectTimeout]);
 
   const sendMessage = useCallback((message: WebSocketMessage) => {
     const messageStr = JSON.stringify(message);
@@ -91,27 +181,58 @@ export function useWebSocket({
       wsRef.current.send(messageStr);
     } else {
       // Queue the message if not connected
-      console.log('WebSocket not connected, queuing message');
+      if (process.env.NODE_ENV !== 'production') {
+        console.log('WebSocket not connected, queuing message', {
+          queueLength: messageQueueRef.current.length,
+          readyState: wsRef.current?.readyState,
+        });
+      } else {
+        console.log('WebSocket not connected, queuing message');
+      }
       messageQueueRef.current.push(messageStr);
       
       // Try to reconnect if not already attempting
-      if (!isConnected && reconnectAttempts >= maxReconnectAttempts) {
-        setReconnectAttempts(0);
+      if (!isConnected) {
+        if (reconnectAttemptsRef.current >= maxReconnectAttempts) {
+          reconnectAttemptsRef.current = 0;
+        }
         connect();
       }
     }
-  }, [isConnected, reconnectAttempts, maxReconnectAttempts, connect]);
+  }, [isConnected, maxReconnectAttempts, connect]);
+
+  const setSDKOptions = useCallback(
+    (options: Partial<SessionSDKOptions>, sessionId?: string | null) => {
+      const payload: WebSocketMessage = {
+        type: 'setSDKOptions',
+        options,
+      };
+
+      if (sessionId !== undefined) {
+        payload.sessionId = sessionId;
+      }
+
+      sendMessage(payload);
+    },
+    [sendMessage],
+  );
 
   const disconnect = useCallback(() => {
-    if (reconnectTimeoutRef.current) {
-      clearTimeout(reconnectTimeoutRef.current);
+    shouldReconnectRef.current = false;
+    clearReconnectTimeout();
+    if (process.env.NODE_ENV !== 'production') {
+      console.log('[useWebSocket] disconnect called', {
+        hasSocket: Boolean(wsRef.current),
+        readyState: wsRef.current?.readyState,
+      });
     }
     if (wsRef.current) {
       wsRef.current.close();
       wsRef.current = null;
     }
+    reconnectAttemptsRef.current = 0;
     setIsConnected(false);
-  }, []);
+  }, [clearReconnectTimeout]);
 
   // Initialize connection
   useEffect(() => {
@@ -120,11 +241,12 @@ export function useWebSocket({
     return () => {
       disconnect();
     };
-  }, []);
+  }, [connect, disconnect]);
 
   return {
     isConnected,
     sendMessage,
+    setSDKOptions,
     disconnect,
     reconnect: connect,
   };

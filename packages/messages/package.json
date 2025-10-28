@@ -1,0 +1,47 @@
+{
+  "name": "@claude-agent-kit/messages",
+  "version": "0.1.0",
+  "description": "Message utilities and types for working with @anthropic-ai/claude-agent-sdk transcripts.",
+  "type": "module",
+  "main": "dist/index.js",
+  "module": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "exports": {
+    ".": {
+      "import": "./dist/index.js",
+      "types": "./dist/index.d.ts"
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "clean": "rm -rf dist",
+    "lint": "echo \"Add your preferred linter and update scripts\" && exit 0",
+    "prepare": "pnpm run build",
+    "test": "vitest run --passWithNoTests",
+    "test:watch": "vitest"
+  },
+  "keywords": [
+    "anthropic",
+    "claude",
+    "agent",
+    "messages",
+    "types"
+  ],
+  "engines": {
+    "node": ">=18"
+  },
+  "peerDependencies": {
+    "@anthropic-ai/claude-agent-sdk": ">=0.1.0"
+  },
+  "dependencies": {
+    "nanoid": "^5.0.7"
+  },
+  "devDependencies": {
+    "@types/node": "^24.8.1",
+    "typescript": "^5.4.5",
+    "vitest": "^4.0.3"
+  }
+}

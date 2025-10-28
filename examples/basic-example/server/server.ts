@@ -1,11 +1,35 @@
 import "dotenv/config";
-import { WebSocketHandler } from "../ccsdk/websocket-handler";
-import type { WSClient } from "../ccsdk/types";
+import fs from "node:fs";
+import path from "node:path";
+import { BunWebSocketHandler, type WSClient } from "@claude-agent-kit/bun-websocket";
+import {
+  SimpleClaudeAgentSDKClient,
+  type SessionSDKOptions,
+} from "@claude-agent-kit/server";
 import {
   handlePingEndpoint
 } from "./endpoints";
 
-const wsHandler = new WebSocketHandler();
+const sdkClient = new SimpleClaudeAgentSDKClient();
+
+const defaultOptions: SessionSDKOptions = {
+  cwd: path.join(process.cwd(), "agent"),
+  thinkingLevel: "default_on",
+};
+
+try {
+  const promptPath = path.join(process.cwd(), "agent", "CLAUDE.MD");
+  if (fs.existsSync(promptPath)) {
+    const prompt = fs.readFileSync(promptPath, "utf-8");
+    if (prompt.trim().length > 0) {
+      defaultOptions.appendSystemPrompt = prompt;
+    }
+  }
+} catch (error) {
+  console.warn("Failed to load default agent prompt:", error);
+}
+
+const wsHandler = new BunWebSocketHandler(sdkClient, defaultOptions);
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -26,8 +50,13 @@ const server = Bun.serve({
       wsHandler.onMessage(ws, message);
     },
 
-    close(ws: WSClient) {
+    close(ws: WSClient, code: number, message: string) {
+      console.log("Bun WebSocket connection closing", { code, message });
       wsHandler.onClose(ws);
+    },
+
+    error(_ws: WSClient, error: Error) {
+      console.error("Bun WebSocket error:", error);
     }
   },
 

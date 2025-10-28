@@ -1,0 +1,2 @@
+{"type":"user","uuid":"user-message","sessionId":"fixture-session","timestamp":"2024-01-01T00:00:00.000Z","message":{"role":"user","content":"Hello from log"}}
+{"type":"assistant","uuid":"assistant-message","sessionId":"fixture-session","timestamp":"2024-01-01T00:00:01.000Z","message":{"role":"assistant","content":[{"type":"text","text":"Hi back from fixture"}]}}

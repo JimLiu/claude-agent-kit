@@ -1,5 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 
+import type { SessionSDKOptions } from 'claude-agent-kit/types';
+
 interface WebSocketMessage {
   type: string;
   [key: string]: any;
@@ -102,6 +104,22 @@ export function useWebSocket({
     }
   }, [isConnected, reconnectAttempts, maxReconnectAttempts, connect]);
 
+  const setSDKOptions = useCallback(
+    (options: Partial<SessionSDKOptions>, sessionId?: string | null) => {
+      const payload: WebSocketMessage = {
+        type: 'setSDKOptions',
+        options,
+      };
+
+      if (sessionId !== undefined) {
+        payload.sessionId = sessionId;
+      }
+
+      sendMessage(payload);
+    },
+    [sendMessage],
+  );
+
   const disconnect = useCallback(() => {
     if (reconnectTimeoutRef.current) {
       clearTimeout(reconnectTimeoutRef.current);
@@ -120,11 +138,12 @@ export function useWebSocket({
     return () => {
       disconnect();
     };
-  }, []);
+  }, [connect, disconnect]);
 
   return {
     isConnected,
     sendMessage,
+    setSDKOptions,
     disconnect,
     reconnect: connect,
   };

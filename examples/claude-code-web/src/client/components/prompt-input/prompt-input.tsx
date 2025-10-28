@@ -18,9 +18,11 @@ import {
 } from "@/lib/mention-utils";
 import {
   PermissionMode,
-  Session,
   ClaudeModelOption,
   SelectionInfo,
+  ThinkingLevel,
+  UsageData,
+  UserMessage,
 } from "@/types/session";
 import { cn } from "@/lib/utils";
 import { CommandMenu, CommandRegistry } from "./command-menu";
@@ -52,7 +54,17 @@ export interface PromptContext {
 }
 
 export interface PromptInputProps {
-  session: Session;
+  messages: UserMessage[];
+  permissionMode: PermissionMode;
+  onPermissionModeChange: (mode: PermissionMode) => void;
+  isBusy: boolean;
+  usageData: UsageData;
+  thinkingLevel: ThinkingLevel;
+  onThinkingLevelChange: (level: ThinkingLevel) => void;
+  availableModels?: ClaudeModelOption[];
+  currentModel?: string | null;
+  selection: SelectionInfo | null;
+  onInterrupt: () => void;
   onSubmit: (message: string, attachments: AttachedFile[]) => void | Promise<void>;
   context: PromptContext;
   placeholder?: string;
@@ -93,7 +105,17 @@ const MAX_MESSAGE_LENGTH = 50_000;
 export const PromptInput = forwardRef<PromptInputHandle, PromptInputProps>(
   (
     {
-      session,
+      messages,
+      permissionMode,
+      onPermissionModeChange,
+      isBusy,
+      usageData,
+      thinkingLevel,
+      onThinkingLevelChange,
+      availableModels,
+      currentModel,
+      selection,
+      onInterrupt,
       onSubmit,
       context,
       placeholder,
@@ -141,7 +163,7 @@ export const PromptInput = forwardRef<PromptInputHandle, PromptInputProps>(
     );
 
     const historyController = useMessageHistory({
-      messages: session.messages.value,
+      messages,
       currentInput: inputValue,
       onInputChange: setInputValue,
       editableRef,
@@ -292,10 +314,15 @@ export const PromptInput = forwardRef<PromptInputHandle, PromptInputProps>(
 
     const cyclePermissionMode = () => {
       const index =
-        (PERMISSION_MODES.indexOf(session.permissionMode.value) + 1) %
+        (PERMISSION_MODES.indexOf(permissionMode) + 1) %
         PERMISSION_MODES.length;
       const nextMode = PERMISSION_MODES[index];
-      session.setPermissionMode(nextMode, true);
+      onPermissionModeChange(nextMode);
+    };
+
+    const toggleThinking = () => {
+      const nextLevel = thinkingLevel === "off" ? "default_on" : "off";
+      onThinkingLevelChange(nextLevel);
     };
 
     const closeOverlays = () => {
@@ -787,7 +814,7 @@ export const PromptInput = forwardRef<PromptInputHandle, PromptInputProps>(
             "data-[permission-mode=acceptEdits]:focus-within:border-foreground",
             "data-[permission-mode=plan]:focus-within:border-ring",
           )}
-          data-permission-mode={session.permissionMode.value}
+          data-permission-mode={permissionMode}
         >
           <div className="pointer-events-none absolute inset-0 rounded bg-background" />
           <CommandMenu
@@ -809,10 +836,8 @@ export const PromptInput = forwardRef<PromptInputHandle, PromptInputProps>(
           <ModelPicker
             isOpen={isModelPickerOpen}
             onClose={handleScrimClick}
-            availableModels={session.claudeConfig.value?.models}
-            currentModel={
-              session.modelSelection.value ?? session.config.value?.modelSetting
-            }
+            availableModels={availableModels}
+            currentModel={currentModel}
             onModelSelected={onModelSelected}
           />
           <div className="relative flex items-end gap-2">
@@ -839,7 +864,7 @@ export const PromptInput = forwardRef<PromptInputHandle, PromptInputProps>(
               aria-label="Message input"
               aria-multiline="true"
               data-placeholder={
-                session.busy.value ? BUSY_PLACEHOLDER : actualPlaceholder
+                isBusy ? BUSY_PLACEHOLDER : actualPlaceholder
               }
             />
             {micAvailable && (
@@ -906,15 +931,19 @@ export const PromptInput = forwardRef<PromptInputHandle, PromptInputProps>(
             </div>
           )}
           <PromptInputFooter
-            session={session}
-            mode={session.permissionMode.value}
+            mode={permissionMode}
             onCycleMode={cyclePermissionMode}
-            currentSelection={session.selection.value as SelectionInfo | null}
+            currentSelection={selection}
             canSendMessage={inputValue.trim().length > 0}
             toggleCommandMenu={handleToggleCommandMenu}
             includeSelection={includeSelection}
             onToggleIncludeSelection={onToggleIncludeSelection}
             onCompact={handleCompact}
+            isBusy={isBusy}
+            usageData={usageData}
+            thinkingLevel={thinkingLevel}
+            onToggleThinking={toggleThinking}
+            onInterrupt={onInterrupt}
           />
         </form>
       </>

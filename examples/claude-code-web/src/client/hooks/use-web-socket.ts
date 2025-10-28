@@ -1,5 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 
+import type { SessionSDKOptions } from 'claude-agent-kit/types'
+
 import { ROUTE_CHANGE_EVENT, parseRoute } from '@/lib/route'
 
 type WebSocketPayload = Record<string, unknown>
@@ -18,6 +20,10 @@ interface UseWebSocketResult {
   isConnected: boolean
   reconnectAttempts: number
   sendMessage: (message: WebSocketPayload) => void
+  setSDKOptions: (
+    options: Partial<SessionSDKOptions>,
+    sessionId?: string | null,
+  ) => void
   disconnect: () => void
   reconnect: () => void
 }
@@ -168,6 +174,22 @@ export function useWebSocket({
     [isConnected, maxReconnectAttempts, connect],
   )
 
+  const setSDKOptions = useCallback(
+    (options: Partial<SessionSDKOptions>, sessionId?: string | null) => {
+      const payload: WebSocketPayload = {
+        type: 'setSDKOptions',
+        options,
+      }
+
+      if (sessionId !== undefined) {
+        payload.sessionId = sessionId
+      }
+
+      sendMessage(payload)
+    },
+    [sendMessage],
+  )
+
   const disconnect = useCallback(() => {
     shouldReconnectRef.current = false
     teardown()
@@ -221,6 +243,7 @@ export function useWebSocket({
     isConnected,
     reconnectAttempts,
     sendMessage,
+    setSDKOptions,
     disconnect,
     reconnect: reconnectNow,
   }

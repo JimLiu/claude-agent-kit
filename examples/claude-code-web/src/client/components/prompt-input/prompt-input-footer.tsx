@@ -3,7 +3,8 @@ import { PermissionModeButton } from "./permission-mode-button";
 import {
   PermissionMode,
   SelectionInfo,
-  Session,
+  ThinkingLevel,
+  UsageData,
 } from "@/types/session";
 import { cn } from "@/lib/utils";
 
@@ -131,7 +132,6 @@ function getSelectionLabel(selection: SelectionInfo): string {
 }
 
 export interface PromptInputFooterProps {
-  session: Session;
   mode: PermissionMode;
   onCycleMode: () => void;
   currentSelection: SelectionInfo | null;
@@ -140,10 +140,14 @@ export interface PromptInputFooterProps {
   includeSelection: boolean;
   onToggleIncludeSelection: () => void;
   onCompact: () => void;
+  isBusy: boolean;
+  usageData: UsageData;
+  thinkingLevel: ThinkingLevel;
+  onToggleThinking: () => void;
+  onInterrupt: () => void;
 }
 
 export function PromptInputFooter({
-  session,
   mode,
   onCycleMode,
   currentSelection,
@@ -152,15 +156,14 @@ export function PromptInputFooter({
   includeSelection,
   onToggleIncludeSelection,
   onCompact,
+  isBusy,
+  usageData,
+  thinkingLevel,
+  onToggleThinking,
+  onInterrupt,
 }: PromptInputFooterProps) {
-  const sendIcon = session.busy.value && !canSendMessage ? <StopIcon /> : <SendIcon />;
-  const thinkingEnabled = session.thinkingLevel.value !== "off";
-
-  const toggleThinking = () => {
-    session.setThinkingLevel(
-      session.thinkingLevel.value === "off" ? "default_on" : "off",
-    );
-  };
+  const sendIcon = isBusy && !canSendMessage ? <StopIcon /> : <SendIcon />;
+  const thinkingEnabled = thinkingLevel !== "off";
 
   return (
     <div className={FOOTER_CLASS}>
@@ -192,8 +195,8 @@ export function PromptInputFooter({
       )}
 
       <ContextUsageIndicator
-        usedTokens={session.usageData.value.totalTokens}
-        contextWindow={session.usageData.value.contextWindow}
+        usedTokens={usageData.totalTokens}
+        contextWindow={usageData.contextWindow}
         onCompact={onCompact}
       />
 
@@ -206,7 +209,7 @@ export function PromptInputFooter({
           !thinkingEnabled && MENU_BUTTON_OFF_CLASS,
         )}
         title={thinkingEnabled ? "Thinking on" : "Thinking off"}
-        onClick={toggleThinking}
+        onClick={onToggleThinking}
       >
         <ThinkingIcon />
       </button>
@@ -222,13 +225,13 @@ export function PromptInputFooter({
 
       <button
         type="submit"
-        disabled={!session.busy.value && !canSendMessage}
+        disabled={!isBusy && !canSendMessage}
         className={SEND_BUTTON_CLASS}
         data-permission-mode={mode}
         onClick={(event) => {
-          if (session.busy.value && !canSendMessage) {
+          if (isBusy && !canSendMessage) {
             event.preventDefault();
-            session.interrupt();
+            onInterrupt();
           }
         }}
       >

@@ -2,7 +2,12 @@ import { useAtomValue, useSetAtom } from 'jotai'
 import { useCallback } from 'react'
 
 import { addNewSDKMessage, convertSDKMessages } from 'claude-agent-kit/messages'
-import type { OutcomingMessage } from 'claude-agent-kit/types'
+import type {
+  OutcomingMessage,
+  SessionSDKOptions,
+} from 'claude-agent-kit/types'
+
+import type { PermissionMode, ThinkingLevel } from '@/types/session'
 
 import { sortMessages } from '@/lib/chat-message-utils'
 
@@ -74,4 +79,51 @@ export function useSelectChatSession() {
     },
     [setMessages, setProjectId, setSessionId, setSessionInfo],
   )
+}
+
+type SetSDKOptionsFn = (
+  options: Partial<SessionSDKOptions>,
+  sessionId?: string | null,
+) => void
+
+export function useChatSessionOptions(setSDKOptions: SetSDKOptionsFn) {
+  const sessionId = useAtomValue(chatSessionIdAtom)
+  const setSessionInfo = useSetAtom(chatSessionInfoAtom)
+
+  const setSessionOptions = useCallback(
+    (options: Partial<SessionSDKOptions>, broadcast = true) => {
+      setSessionInfo((previous) => ({
+        ...previous,
+        options: {
+          ...previous.options,
+          ...options,
+        },
+      }))
+
+      if (broadcast) {
+        setSDKOptions(options, sessionId ?? null)
+      }
+    },
+    [sessionId, setSDKOptions, setSessionInfo],
+  )
+
+  const setPermissionMode = useCallback(
+    (mode: PermissionMode, broadcast = true) => {
+      setSessionOptions({ permissionMode: mode }, broadcast)
+    },
+    [setSessionOptions],
+  )
+
+  const setThinkingLevel = useCallback(
+    (level: ThinkingLevel, broadcast = true) => {
+      setSessionOptions({ thinkingLevel: level }, broadcast)
+    },
+    [setSessionOptions],
+  )
+
+  return {
+    setSessionOptions,
+    setPermissionMode,
+    setThinkingLevel,
+  }
 }

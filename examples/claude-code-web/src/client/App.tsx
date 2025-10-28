@@ -20,9 +20,6 @@ import { useWebSocket } from '@/hooks/use-web-socket'
 import type {
   ClaudeConfig,
   ClaudeModelOption,
-  PermissionMode,
-  Session,
-  ThinkingLevel,
   UsageData,
   UserMessage,
 } from '@/types/session'
@@ -37,6 +34,7 @@ import {
   useChatSessionState,
   useOutcomingMessageHandler,
   useSelectChatSession,
+  useChatSessionOptions,
 } from '@/state/use-chat-session'
 
 type ServerMessage =
@@ -181,32 +179,6 @@ function App() {
       }),
     }))
   }, [messages])
-
-  const handleSetPermissionMode = useCallback(
-    (mode: PermissionMode) => {
-      setSessionInfo((previous) => ({
-        ...previous,
-        options: {
-          ...previous.options,
-          permissionMode: mode,
-        },
-      }))
-    },
-    [setSessionInfo],
-  )
-
-  const handleSetThinkingLevel = useCallback(
-    (level: ThinkingLevel) => {
-      setSessionInfo((previous) => ({
-        ...previous,
-        options: {
-          ...previous.options,
-          thinkingLevel: level,
-        },
-      }))
-    },
-    [setSessionInfo],
-  )
 
   const handleInterrupt = useCallback(() => {
     setSessionInfo((previous) => ({
@@ -353,43 +325,16 @@ function App() {
     [handleOutcomingMessage, setMessages, setSessionInfo],
   )
 
-  const { isConnected, sendMessage } = useWebSocket({
+  const { isConnected, sendMessage, setSDKOptions } = useWebSocket({
     url: websocketUrl,
     onMessage: handleServerMessage,
   })
 
-  const isStreaming = isBusy || isLoading
-
-  const session = useMemo<Session>(
-    () => ({
-      messages: { value: sessionMessages },
-      permissionMode: { value: permissionMode },
-      setPermissionMode: handleSetPermissionMode,
-      busy: { value: isStreaming },
-      selection: { value: null },
-      usageData: { value: usageData },
-      claudeConfig: { value: claudeConfig },
-      modelSelection: { value: modelSelection },
-      config: {
-        value: modelSelection ? { modelSetting: modelSelection } : null,
-      },
-      thinkingLevel: { value: thinkingLevel },
-      setThinkingLevel: handleSetThinkingLevel,
-      interrupt: handleInterrupt,
-    }),
-    [
-      claudeConfig,
-      handleInterrupt,
-      handleSetPermissionMode,
-      isStreaming,
-      modelSelection,
-      permissionMode,
-      sessionMessages,
-      handleSetThinkingLevel,
-      thinkingLevel,
-      usageData,
-    ],
+  const { setPermissionMode, setThinkingLevel } = useChatSessionOptions(
+    setSDKOptions,
   )
+
+  const isStreaming = isBusy || isLoading
 
   const handlePromptSubmit = useCallback(
     async (message: string, attachments: AttachedFile[]) => {
@@ -450,7 +395,17 @@ function App() {
             <MessagesPane messages={messages} isStreaming={isStreaming} />
             <div className="border-t px-6 py-4">
               <PromptInput
-                session={session}
+                messages={sessionMessages}
+                permissionMode={permissionMode}
+                onPermissionModeChange={setPermissionMode}
+                isBusy={isStreaming}
+                usageData={usageData}
+                thinkingLevel={thinkingLevel}
+                onThinkingLevelChange={setThinkingLevel}
+                availableModels={claudeConfig.models}
+                currentModel={modelSelection}
+                selection={null}
+                onInterrupt={handleInterrupt}
                 onSubmit={handlePromptSubmit}
                 context={promptContext}
                 placeholder={

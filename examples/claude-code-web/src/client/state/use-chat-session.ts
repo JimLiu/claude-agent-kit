@@ -1,11 +1,11 @@
 import { useAtomValue, useSetAtom } from 'jotai'
 import { useCallback } from 'react'
 
-import { addNewSDKMessage, convertSDKMessages } from 'claude-agent-kit/messages'
+import { addNewSDKMessage, convertSDKMessages } from '@claude-agent-kit/messages'
 import type {
   OutcomingMessage,
   SessionSDKOptions,
-} from 'claude-agent-kit/types'
+} from '@claude-agent-kit/server'
 
 import type { PermissionMode, ThinkingLevel } from '@/types/session'
 

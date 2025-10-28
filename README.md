@@ -16,27 +16,25 @@ pnpm install
 pnpm run build
 ```
 
-Import the pieces you need from the top-level entry point:
+Import the pieces you need from the scoped packages:
 
 ```ts
-import {
-  SessionManager,
-  WebSocketHandler,
-  buildUserMessageContent,
-} from "claude-agent-kit";
+import { buildUserMessageContent } from "@claude-agent-kit/messages";
+import { SessionManager, SimpleClaudeAgentSDKClient } from "@claude-agent-kit/server";
+import { WebSocketHandler } from "@claude-agent-kit/websocket";
 ```
 
 ## Quick Usage Example
 
 ```ts
-import { SessionManager, ClaudeAgentSDKClient } from "claude-agent-kit";
+import { SessionManager, SimpleClaudeAgentSDKClient } from "@claude-agent-kit/server";
+import type { AttachmentPayload } from "@claude-agent-kit/messages";
 
-const sessionManager = new SessionManager(() => new ClaudeAgentSDKClient({
-  cwd: process.cwd(),
-}));
+const sessionManager = new SessionManager(new SimpleClaudeAgentSDKClient());
 
 const session = sessionManager.createSession();
-await session.send("List the open pull requests in this repo.", undefined);
+const attachments: AttachmentPayload[] | undefined = undefined;
+await session.send("List the open pull requests in this repo.", attachments);
 
 for (const message of session.messages) {
   console.log(`[${message.type}]`, message.content.map((part) => part.content));

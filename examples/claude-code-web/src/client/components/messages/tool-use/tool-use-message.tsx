@@ -3,7 +3,7 @@ import { useMemo, useState } from "react";
 import type {
   ToolResultContentBlock,
   ToolUseContentBlock,
-} from "claude-agent-kit/types";
+} from "@claude-agent-kit/messages";
 import type { MessagePartProps } from "../types";
 import { ToolSummary } from "./tool-summary";
 import { getToolRenderer } from "./tool-renderer-factory";

@@ -4,7 +4,7 @@ import type {
   ChatMessageType,
   MessageContentBlock,
   ToolResultContentBlock,
-} from 'claude-agent-kit/types'
+} from '@claude-agent-kit/messages'
 
 export type SerializedChatMessage = {
   id: string

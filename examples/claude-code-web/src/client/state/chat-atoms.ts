@@ -1,5 +1,6 @@
 import { atom } from 'jotai'
-import type { ChatMessage, SessionSDKOptions } from 'claude-agent-kit/types'
+import type { ChatMessage } from '@claude-agent-kit/messages'
+import type { SessionSDKOptions } from '@claude-agent-kit/server'
 
 const createDefaultOptions = (): SessionSDKOptions => ({
   permissionMode: 'default',

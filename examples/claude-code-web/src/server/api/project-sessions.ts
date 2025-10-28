@@ -4,7 +4,7 @@ import path from 'node:path'
 
 import type { SDKMessage } from '@anthropic-ai/claude-agent-sdk'
 
-import { parseSessionMessagesFromJsonl } from 'claude-agent-kit'
+import { parseSessionMessagesFromJsonl } from '@claude-agent-kit/server'
 
 import { getProjectsRoot } from './projects'
 

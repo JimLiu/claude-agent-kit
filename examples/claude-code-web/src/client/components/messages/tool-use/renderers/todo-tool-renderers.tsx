@@ -2,7 +2,7 @@ import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
 import { Check, Loader2 } from 'lucide-react';
 import type { ReactNode } from 'react';
-import type { ToolResultContentBlock } from 'claude-agent-kit/types';
+import type { ToolResultContentBlock } from '@claude-agent-kit/messages';
 import type { ClaudeMessageContext } from '../../types';
 import { ToolBody } from '../tool-body';
 import { BaseToolRenderer } from './base-tool-renderer';

@@ -6,12 +6,22 @@ This document describes the WebSocket message protocol, how to integrate the `We
 
 Example using the `ws` library in Node.js:
 
-```ts
 import { WebSocketServer } from "ws";
-import { WebSocketHandler } from "./src/websocket-handler"; // adjust import for your app
+import { WebSocketHandler } from "@claude-agent-kit/websocket";
+import { SimpleClaudeAgentSDKClient } from "@claude-agent-kit/server";
+import type { SessionSDKOptions } from "@claude-agent-kit/server";
 
 const wss = new WebSocketServer({ port: 8787 });
-const handler = new WebSocketHandler();
+
+const sessionOptions: SessionSDKOptions = {
+  maxTurns: 100,
+  thinkingLevel: "default_on",
+};
+
+const handler = new WebSocketHandler(
+  new SimpleClaudeAgentSDKClient(),
+  sessionOptions,
+);
 
 wss.on("connection", (ws) => {
   handler.onOpen(ws);
@@ -29,7 +39,7 @@ wss.on("connection", (ws) => {
 Notes
 
 - Each socket is wrapped in a `WebSocketSessionClient` and subscribed to a Session via `SessionManager`.
-- `WebSocketHandler` uses an internal `SimpleClaudeAgentSDKClient` which can be swapped by editing `src/websocket-handler.ts`.
+- `WebSocketHandler` delegates Claude API calls to an `IClaudeAgentSDKClient`. The default helper, `SimpleClaudeAgentSDKClient`, is exported from `@claude-agent-kit/server` and can be replaced with your own implementation.
 
 ## Protocol Overview
 

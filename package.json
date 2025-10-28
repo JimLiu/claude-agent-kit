@@ -7,10 +7,10 @@
     "examples/*"
   ],
   "scripts": {
-    "build": "pnpm --filter claude-agent-kit run build",
-    "clean": "pnpm --filter claude-agent-kit run clean",
-    "test": "pnpm --filter claude-agent-kit run test",
-    "test:watch": "pnpm --filter claude-agent-kit run test:watch",
+    "build": "pnpm -r --filter @claude-agent-kit/* run build",
+    "clean": "pnpm -r --filter @claude-agent-kit/* run clean",
+    "test": "pnpm -r --filter @claude-agent-kit/* run test",
+    "test:watch": "pnpm -r --filter @claude-agent-kit/* run test:watch",
     "prepare": "pnpm run build"
   },
   "devDependencies": {

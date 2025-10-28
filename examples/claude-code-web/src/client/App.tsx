@@ -24,7 +24,8 @@ import type {
   UserMessage,
 } from '@/types/session'
 
-import type { AttachmentPayload, OutcomingMessage } from 'claude-agent-kit/types'
+import type { AttachmentPayload } from '@claude-agent-kit/messages'
+import type { OutcomingMessage } from '@claude-agent-kit/server'
 import { createSystemMessage } from '@/lib/chat-message-utils'
 import {
   chatMessagesAtom,

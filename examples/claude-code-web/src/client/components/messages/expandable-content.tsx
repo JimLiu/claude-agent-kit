@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 
-import type { ChatMessagePart } from 'claude-agent-kit/types'
+import type { ChatMessagePart } from '@claude-agent-kit/messages'
 import type { ClaudeMessageContext } from './types'
 import { MessagePart } from './message-part'
 import { cn } from '../../lib/utils'

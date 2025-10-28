@@ -1,4 +1,4 @@
-import { ChatMessagePart as ChatMessagePartModel } from 'claude-agent-kit/types'
+import { ChatMessagePart as ChatMessagePartModel } from '@claude-agent-kit/messages'
 import type { AttachmentChipType } from '../chat/attachment-chip'
 import type { MessagePartProps } from './types'
 import { AttachmentChip } from '../chat/attachment-chip'

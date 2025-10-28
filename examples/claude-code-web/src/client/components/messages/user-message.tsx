@@ -1,6 +1,6 @@
 import { useMemo } from 'react'
 
-import type { ChatMessagePart } from 'claude-agent-kit/types'
+import type { ChatMessagePart } from '@claude-agent-kit/messages'
 import { parseUserFacingContent } from '../../lib/message-parsing'
 import type { ClaudeMessageContext } from './types'
 import { MessagePart } from './message-part'

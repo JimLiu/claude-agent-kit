@@ -12,7 +12,7 @@ import {
 import type { ComponentProps, ReactNode } from "react";
 import { isValidElement } from "react";
 
-import type { ToolResultContentBlock } from "claude-agent-kit/types";
+import type { ToolResultContentBlock } from "@claude-agent-kit/messages";
 import type { ClaudeMessageContext } from "../../types";
 import {
   isNonEmptyRecord,

@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 
-import type { SessionSDKOptions } from 'claude-agent-kit/types'
+import type { SessionSDKOptions } from '@claude-agent-kit/server'
 
 import { ROUTE_CHANGE_EVENT, parseRoute } from '@/lib/route'
 

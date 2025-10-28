@@ -5,7 +5,8 @@ import express from 'express'
 import type { ViteDevServer } from 'vite'
 import { WebSocketServer } from 'ws'
 
-import { SimpleClaudeAgentSDKClient, WebSocketHandler } from 'claude-agent-kit'
+import { SimpleClaudeAgentSDKClient } from '@claude-agent-kit/server'
+import { WebSocketHandler } from '@claude-agent-kit/websocket'
 import { registerApiRoutes } from './api'
 import { registerRoutes } from './routes'
 
@@ -21,9 +22,9 @@ export async function createServer(options: CreateServerOptions = {}) {
   const app = express()
   const httpServer = createHttpServer(app)
   const webSocketServer = new WebSocketServer({ server: httpServer })
-  const sdkClient = new SimpleClaudeAgentSDKClient();
+  const sdkClient = new SimpleClaudeAgentSDKClient()
   const webSocketHandler = new WebSocketHandler(sdkClient, {
-    // Pass any necessary options here
+    thinkingLevel: 'default_on',
   })
 
   webSocketServer.on('connection', (ws) => {

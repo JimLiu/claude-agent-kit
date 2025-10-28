@@ -1,6 +1,6 @@
 import type { ReactNode } from 'react';
 import type { ClaudeMessageContext } from '../../../types';
-import type { ToolResultContentBlock } from 'claude-agent-kit/types';
+import type { ToolResultContentBlock } from '@claude-agent-kit/messages';
 import { ToolBody } from '../../tool-body';
 import { SecondaryLine } from '../../secondary-line';
 import { DiffPreview } from '../../diff-preview';

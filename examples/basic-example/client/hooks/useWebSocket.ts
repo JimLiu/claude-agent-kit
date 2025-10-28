@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 
-import type { SessionSDKOptions } from 'claude-agent-kit/types';
+import type { SessionSDKOptions } from '@claude-agent-kit/server';
 
 interface WebSocketMessage {
   type: string;

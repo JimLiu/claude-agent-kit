@@ -15,7 +15,7 @@ At a high level, the system wires the Anthropic Claude Agent SDK into a sessione
 
 ### Session
 
-Source: `src/session.ts:1`
+Source: `packages/server/src/server/session.ts:1`
 
 - Holds per‑conversation state: `sessionId`, `messages`, `busyState`, `loadingState`, `usageSummary`, `thinkingLevel`, etc.
 - Streams with `sdkClient.queryStream(...)` and appends messages via `processIncomingMessage`.
@@ -28,7 +28,7 @@ Source: `src/session.ts:1`
 
 ### SessionClient (ISessionClient)
 
-Source: `src/types/session.ts:22`
+Source: `packages/server/src/types/session.ts:22`
 
 - A thin interface that server‑side client adapters implement to receive session updates:
   - Properties: `sessionId`, `sdkClient`.
@@ -37,19 +37,18 @@ Source: `src/types/session.ts:22`
 
 ### SessionManager
 
-Source: `src/session-manager.ts:1`
+Source: `packages/server/src/server/session-manager.ts:1`
 
 - Owns and indexes multiple Session instances.
 - Resolves a Session for a given `ISessionClient` (create if missing) and proxies operations:
   - `subscribe(client)`/`unsubscribe(client)`
   - `sendMessage(client, prompt, attachments)`
-  - `setPermissionMode(client, mode)`
-  - `setThinkingLevel(client, value)`
+  - `setSDKOptions(client, options)`
 - Sorts sessions by recency via `sessionsByLastModified`.
 
 ### IClaudeAgentSDKClient and SimpleClaudeAgentSDKClient
 
-Sources: `src/types/client.ts:1`, `src/simple-cas-client.ts:1`
+Sources: `packages/server/src/types/client.ts:1`, `packages/server/src/server/simple-cas-client.ts:1`
 
 - `IClaudeAgentSDKClient` is the small adapter interface used by Session:
   - `queryStream(prompt|AsyncIterable, options?) → AsyncIterable<SDKMessage>`
@@ -58,20 +57,19 @@ Sources: `src/types/client.ts:1`, `src/simple-cas-client.ts:1`
 
 ### WebSocketHandler
 
-Source: `src/websocket-handler.ts:1`
+Source: `packages/websocket/src/websocket-handler.ts:1`
 
 - Wraps WebSocket server events (`open`, `message`, `close`).
 - Maintains a `Map<WebSocket, WebSocketSessionClient>` to track connected peers.
 - Creates one `WebSocketSessionClient` per socket and subscribes it to a Session via `SessionManager` on connect.
 - Handles incoming control and chat messages from the wire, delegating to SessionManager:
   - `chat` → `sendMessage(client, content, attachments)`
-  - `setPermissionMode` → `setPermissionMode(client, mode)`
-  - `setThinkingLevel` → `setThinkingLevel(client, value)`
+  - `setSDKOptions` → `setSDKOptions(client, options)`
 - Sends basic control frames like `{ type: "connected" }` and `{ type: "error", code }` directly.
 
 ### WebSocketSessionClient
 
-Source: `src/websocket-session-client.ts:1`
+Source: `packages/websocket/src/websocket-session-client.ts:1`
 
 - Implements `ISessionClient` for a single WebSocket connection.
 - Forwards `Session`’s outcoming messages to the wire by `webSocket.send(JSON.stringify(message))`.

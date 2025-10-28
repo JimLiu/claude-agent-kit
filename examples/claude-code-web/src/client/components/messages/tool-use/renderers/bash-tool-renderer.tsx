@@ -1,6 +1,6 @@
 import type { ReactNode } from "react";
 
-import type { ToolResultContentBlock } from "claude-agent-kit/types";
+import type { ToolResultContentBlock } from "@claude-agent-kit/messages";
 import type { ClaudeMessageContext } from "../../types";
 import { CodeBlock } from "@/components/messages/code-block";
 import {

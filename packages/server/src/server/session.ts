@@ -237,6 +237,10 @@ export class Session {
     this.clients.delete(client);
   }
 
+  hasClient(client: ISessionClient): boolean {
+    return this.clients.has(client);
+  }
+
   notifyClients(event: string, message: OutcomingMessage) {
     this.clients.forEach((client: ISessionClient) => {
       if (!client) {

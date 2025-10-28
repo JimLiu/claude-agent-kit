@@ -44,6 +44,11 @@ export class SessionManager {
 
   getOrCreateSession(client: ISessionClient): Session {
     let session = client.sessionId ? this.getSession(client.sessionId) : undefined;
+
+    if (!session) {
+      session = this.sessionsList.find((existing) => existing.hasClient(client));
+    }
+
     if (!session) {
       session = this.createSession(client.sdkClient);
       // Update the client's sessionId to match the newly created session
@@ -72,6 +77,7 @@ export class SessionManager {
     attachments: AttachmentPayload[] | undefined
   ): void {
     const session = this.getOrCreateSession(client);
+    session.subscribe(client);
     session.send(prompt, attachments);
   }
 

@@ -41,7 +41,13 @@ export class BunWebSocketHandler {
     } else if (!ws.data.sessionId && client.sessionId) {
       ws.data.sessionId = client.sessionId;
     }
-    console.log("Bun WebSocket client connected:", client.sessionId);
+    console.log(
+      "Bun WebSocket client connected",
+      {
+        sessionId: client.sessionId,
+        clientCount: this.clients.size,
+      },
+    );
     this.sessionManager.subscribe(client);
     try {
       this.sessionManager.setSDKOptions(client, this.options);
@@ -61,9 +67,18 @@ export class BunWebSocketHandler {
       console.error("Bun WebSocket client not registered on close");
       return;
     }
-    console.log("Bun WebSocket client disconnected:", client.sessionId);
+    console.log(
+      "Bun WebSocket client disconnected",
+      {
+        sessionId: client.sessionId,
+      },
+    );
     this.sessionManager.unsubscribe(client);
     this.clients.delete(ws);
+    console.log(
+      "Bun WebSocket active clients after disconnect",
+      { clientCount: this.clients.size },
+    );
   }
 
   public async onMessage(

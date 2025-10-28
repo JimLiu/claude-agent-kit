@@ -32,6 +32,26 @@ export function useWebSocket({
   const messageQueueRef = useRef<string[]>([]);
   const reconnectAttemptsRef = useRef(0);
   const shouldReconnectRef = useRef(true);
+  const handlersRef = useRef<{
+    onMessage?: UseWebSocketOptions["onMessage"];
+    onConnect?: UseWebSocketOptions["onConnect"];
+    onDisconnect?: UseWebSocketOptions["onDisconnect"];
+    onError?: UseWebSocketOptions["onError"];
+  }>({
+    onMessage,
+    onConnect,
+    onDisconnect,
+    onError,
+  });
+
+  useEffect(() => {
+    handlersRef.current = {
+      onMessage,
+      onConnect,
+      onDisconnect,
+      onError,
+    };
+  }, [onMessage, onConnect, onDisconnect, onError]);
 
   const clearReconnectTimeout = useCallback(() => {
     if (reconnectTimeoutRef.current) {
@@ -44,24 +64,52 @@ export function useWebSocket({
     shouldReconnectRef.current = true;
     clearReconnectTimeout();
 
+    const existingReadyState = wsRef.current?.readyState;
+    if (process.env.NODE_ENV !== 'production') {
+      console.log('[useWebSocket] connect requested', {
+        hasExistingSocket: Boolean(wsRef.current),
+        existingReadyState,
+      });
+    }
+
     if (
       wsRef.current &&
       (wsRef.current.readyState === WebSocket.OPEN ||
         wsRef.current.readyState === WebSocket.CONNECTING)
     ) {
+      if (process.env.NODE_ENV !== 'production') {
+        console.log('[useWebSocket] existing socket still active, skipping new connection');
+      }
       return;
     }
 
     try {
+      if (wsRef.current) {
+        if (process.env.NODE_ENV !== 'production') {
+          console.log('[useWebSocket] closing existing socket before creating new one', {
+            previousReadyState: wsRef.current.readyState,
+          });
+        }
+        try {
+          wsRef.current.close(4000, 'Replaced connection');
+        } catch (closeError) {
+          console.warn('[useWebSocket] failed to close existing socket before reconnect', closeError);
+        }
+        wsRef.current = null;
+      }
+
       const ws = new WebSocket(url);
       wsRef.current = ws;
+      if (process.env.NODE_ENV !== 'production') {
+        console.log('[useWebSocket] created new WebSocket instance', { url });
+      }
 
       ws.onopen = () => {
         console.log('WebSocket connected');
         setIsConnected(true);
         reconnectAttemptsRef.current = 0;
         clearReconnectTimeout();
-        onConnect?.();
+        handlersRef.current.onConnect?.();
 
         // Send any queued messages
         while (messageQueueRef.current.length > 0) {
@@ -75,21 +123,30 @@ export function useWebSocket({
       ws.onmessage = (event) => {
         try {
           const message = JSON.parse(event.data);
-          onMessage?.(message);
+          handlersRef.current.onMessage?.(message);
         } catch (error) {
           console.error('Failed to parse WebSocket message:', error);
         }
       };
 
       ws.onerror = (error) => {
-        console.error('WebSocket error:', error);
-        onError?.(error);
+        console.error('WebSocket error:', error, {
+          readyState: wsRef.current?.readyState,
+        });
+        handlersRef.current.onError?.(error);
       };
 
-      ws.onclose = () => {
-        console.log('WebSocket disconnected');
+      ws.onclose = (event) => {
+        console.log(
+          'WebSocket disconnected',
+          {
+            code: event.code,
+            reason: event.reason,
+            wasClean: event.wasClean,
+          },
+        );
         setIsConnected(false);
-        onDisconnect?.();
+        handlersRef.current.onDisconnect?.();
         wsRef.current = null;
 
         if (!shouldReconnectRef.current) {
@@ -115,7 +172,7 @@ export function useWebSocket({
     } catch (error) {
       console.error('Failed to create WebSocket connection:', error);
     }
-  }, [url, onMessage, onConnect, onDisconnect, onError, reconnectDelay, maxReconnectAttempts, clearReconnectTimeout]);
+  }, [url, reconnectDelay, maxReconnectAttempts, clearReconnectTimeout]);
 
   const sendMessage = useCallback((message: WebSocketMessage) => {
     const messageStr = JSON.stringify(message);
@@ -124,7 +181,14 @@ export function useWebSocket({
       wsRef.current.send(messageStr);
     } else {
       // Queue the message if not connected
-      console.log('WebSocket not connected, queuing message');
+      if (process.env.NODE_ENV !== 'production') {
+        console.log('WebSocket not connected, queuing message', {
+          queueLength: messageQueueRef.current.length,
+          readyState: wsRef.current?.readyState,
+        });
+      } else {
+        console.log('WebSocket not connected, queuing message');
+      }
       messageQueueRef.current.push(messageStr);
       
       // Try to reconnect if not already attempting
@@ -156,6 +220,12 @@ export function useWebSocket({
   const disconnect = useCallback(() => {
     shouldReconnectRef.current = false;
     clearReconnectTimeout();
+    if (process.env.NODE_ENV !== 'production') {
+      console.log('[useWebSocket] disconnect called', {
+        hasSocket: Boolean(wsRef.current),
+        readyState: wsRef.current?.readyState,
+      });
+    }
     if (wsRef.current) {
       wsRef.current.close();
       wsRef.current = null;

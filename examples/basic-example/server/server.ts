@@ -50,8 +50,13 @@ const server = Bun.serve({
       wsHandler.onMessage(ws, message);
     },
 
-    close(ws: WSClient) {
+    close(ws: WSClient, code: number, message: string) {
+      console.log("Bun WebSocket connection closing", { code, message });
       wsHandler.onClose(ws);
+    },
+
+    error(_ws: WSClient, error: Error) {
+      console.error("Bun WebSocket error:", error);
     }
   },
 

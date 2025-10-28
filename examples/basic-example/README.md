@@ -43,3 +43,17 @@ The example ships with a starter system prompt located at `agent/CLAUDE.MD` and 
 - **Server behavior**: extend `server/server.ts` or create helpers that compose the `@claude-agent-kit/server` and `@claude-agent-kit/bun-websocket` utilities to add REST endpoints, persist sessions, or integrate additional tooling.
 
 With these pieces in place, you can rapidly iterate on a Claude Agent workflow while keeping the code and agent workspace close together.
+
+## WebSocket Payloads
+
+Inbound messages:
+- `chat`: `{ type: 'chat', content: string, attachments?: AttachmentPayload[] }`
+- `setSDKOptions`: `{ type: 'setSDKOptions', options: Partial<SessionSDKOptions> }`
+- `resume`: `{ type: 'resume', sessionId: string }`
+
+Outbound messages:
+- `message_added`: `{ type: 'message_added', sessionId, message }`
+- `messages_updated`: `{ type: 'messages_updated', sessionId, messages }`
+- `session_state_changed`: `{ type: 'session_state_changed', sessionId, sessionState }`
+
+Errors are serialized as: `{ type: 'error', code?: string, error: string }`.

@@ -26,9 +26,15 @@ importers:
 
   examples/basic-example:
     dependencies:
-      '@anthropic-ai/claude-agent-sdk':
-        specifier: ^0.1.13
-        version: 0.1.27(zod@3.25.76)
+      '@claude-agent-kit/bun-websocket':
+        specifier: workspace:*
+        version: link:../../packages/bun-websocket
+      '@claude-agent-kit/messages':
+        specifier: workspace:*
+        version: link:../../packages/messages
+      '@claude-agent-kit/server':
+        specifier: workspace:*
+        version: link:../../packages/server
       '@tailwindcss/postcss':
         specifier: ^4.1.11
         version: 4.1.16

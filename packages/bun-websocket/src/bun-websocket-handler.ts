@@ -43,6 +43,11 @@ export class BunWebSocketHandler {
     }
     console.log("Bun WebSocket client connected:", client.sessionId);
     this.sessionManager.subscribe(client);
+    try {
+      this.sessionManager.setSDKOptions(client, this.options);
+    } catch (error) {
+      console.error("Failed to apply default Bun SDK options:", error);
+    }
 
     this.send(ws, {
       type: "connected",

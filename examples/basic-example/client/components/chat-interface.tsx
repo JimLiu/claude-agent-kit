@@ -7,13 +7,12 @@ interface ChatInterfaceProps {
   isConnected: boolean;
   sendMessage: (message: any) => void;
   messages: Message[];
-  setMessages: React.Dispatch<React.SetStateAction<Message[]>>;
   sessionId: string | null;
   isLoading: boolean;
   setIsLoading: React.Dispatch<React.SetStateAction<boolean>>;
 }
 
-export function ChatInterface({ isConnected, sendMessage, messages, setMessages, sessionId, isLoading, setIsLoading }: ChatInterfaceProps) {
+export function ChatInterface({ isConnected, sendMessage, messages, sessionId, isLoading, setIsLoading }: ChatInterfaceProps) {
   const [inputValue, setInputValue] = useState('');
   const messagesEndRef = useRef<HTMLDivElement>(null);
   
@@ -51,14 +50,6 @@ export function ChatInterface({ isConnected, sendMessage, messages, setMessages,
     e.preventDefault();
     if (!inputValue.trim() || isLoading || !isConnected) return;
     
-    const userMessage: Message = {
-      id: Date.now().toString(),
-      type: 'user',
-      content: inputValue,
-      timestamp: new Date().toISOString(),
-    };
-    
-    setMessages(prev => [...prev, userMessage]);
     setInputValue('');
     setIsLoading(true);
     

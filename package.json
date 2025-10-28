@@ -11,6 +11,7 @@
     "clean": "pnpm -r --filter @claude-agent-kit/* run clean",
     "test": "pnpm -r --filter @claude-agent-kit/* run test",
     "test:watch": "pnpm -r --filter @claude-agent-kit/* run test:watch",
+    "publish:all": "node scripts/publish-all.mjs",
     "dev:basic-example": "pnpm --filter claude-agent-sdk-basic-example dev",
     "dev:claude-code-v0": "pnpm --filter claude-code-v0 dev",
     "dev:claude-code-web": "pnpm --filter claude-code-web dev",

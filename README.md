@@ -153,7 +153,6 @@ export async function createServer() {
 ```
 
 Minimal client usage is identical to the Bun example; the endpoint is the WS server you configure (e.g., `ws://localhost:5173`). For a robust React hook with auto‑reconnect and session resume, see `examples/claude-code-web/src/client/hooks/use-web-socket.ts`.
-```
 
 ## System Design
 

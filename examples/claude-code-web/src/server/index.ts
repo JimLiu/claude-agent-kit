@@ -1,3 +1,4 @@
+import "dotenv/config"
 import { createServer } from './server'
 
 const portEnv = process.env.PORT
